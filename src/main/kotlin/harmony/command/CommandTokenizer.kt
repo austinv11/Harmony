@@ -34,6 +34,9 @@ class CommandTokenizer(private val paramMappers: Array<CommandArgumentMapper<*>>
                         currToken.append(char)
                         wasLastEscape = false
                     }
+                } else if (char == ' ' && !wasLastEscape) {
+                    tokenStack.add(currToken.toString())
+                    currToken = StringBuilder()
                 } else if (char == '"' || char == '\'') {
                     if (lastQuote != null && lastQuoteChar == char) { // End quote
                         if (!wasLastEscape) {

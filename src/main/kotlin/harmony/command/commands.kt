@@ -1,11 +1,19 @@
 package harmony.command
 
+import discord4j.core.`object`.reaction.ReactionEmoji
 import discord4j.core.event.domain.message.MessageCreateEvent
 import harmony.Harmony
 import harmony.command.interfaces.ArgumentMappingException
 import harmony.command.interfaces.CommandArgumentMapper
-import harmony.util.InvokeHandle
+import harmony.command.interfaces.CommandErrorSignal
+import harmony.util.*
+import reactor.core.publisher.Mono
+import java.awt.Color
+import java.time.Duration
 import java.util.*
+import java.util.concurrent.atomic.AtomicInteger
+import kotlin.math.ceil
+import kotlin.math.roundToInt
 
 data class CommandArgumentInfo(
         val name: String,
@@ -148,6 +156,9 @@ class CommandResponderBuilder(internal val args: Array<Arg>) {
     }
 }
 
+val BACK_ARROW = ReactionEmoji.unicode("⬅️")
+val FORWARD_ARROW = ReactionEmoji.unicode("➡️")
+
 internal fun helpBuilder(commandHandler: CommandHandler): InvocableCommand = buildCommand("help") {
     description = "Provides documentation for the commands available"
 
@@ -155,7 +166,53 @@ internal fun helpBuilder(commandHandler: CommandHandler): InvocableCommand = bui
         description = "Lists all available commands"
 
         handle {
-            "Hello World"
+            val context = this.context
+            val commands = commandHandler.commands.keys.toList()
+            val pages: List<List<EmbedField>> = commands
+                .map { EmbedField("**$it**", commandHandler.commands[it]!!.description?.take(1024) ?: "", true) }
+                .windowed(10, 10, partialWindows = true) // 10 commands per page
+
+            val currPage = AtomicInteger(0)
+
+            val embedBuilder = {
+                embed {
+                    author = "Help"
+                    authorIconUrl = commandHandler.harmony.self.avatarUrl
+
+                    title = "Command List"
+
+                    description = "There are a total of ${commands.size} commands loaded. Use the reactions below to flip " +
+                            "between pages. Provide the help command a command name as an argument to get more information."
+
+                    thumbnailUrl = "https://www.thedataschool.co.uk/wp-content/uploads/2019/02/45188-200.png" // Info icon
+
+                    color = Color.CYAN
+
+                    for (field in pages[currPage.get()]) {
+                        addField(field)
+                    }
+
+                    footer = "Page ${currPage.get() + 1} of ${pages.size}"
+                    footerIconUrl = context.author.avatarUrl
+                    timestamp = context.message.timestamp
+                }
+            }
+
+            embedBuilder().send(context.channel).flatMap {
+                it.addReaction(BACK_ARROW)
+                    .then(it.addReaction(FORWARD_ARROW))
+                    .then(Mono.just(it))
+            }.flatMapMany {
+                it.listenForReacts()
+                    .filter { it.userId == context.author.id && (it.emoji == BACK_ARROW || it.emoji == FORWARD_ARROW) }
+                    .flatMap { event ->
+                        val modifier = if (event.emoji == BACK_ARROW) -1 else 1
+                        val newPage = currPage.addAndGet(modifier).clamp(0, pages.size-1)
+                        currPage.set(newPage)
+                        it.edit { spec -> spec.setEmbed(embedBuilder().toSpecConsumer()) }
+                    }
+                    .take(Duration.ofMinutes(30))  // Only listen for 30 minutes
+            }.then()
         }
     }
 
@@ -163,9 +220,82 @@ internal fun helpBuilder(commandHandler: CommandHandler): InvocableCommand = bui
         description = "Gets information about a specified command"
 
         handle {
-            val command: String = arg(0)
+            val commandName = arg<String>(0)
+            val command: InvocableCommand = commandHandler.commands.getOrDefault(commandName, null)
+                ?: throw CommandErrorSignal("Command `$commandName` does not exist!")
 
-            "Hello world $command"
+            embed {
+                author = "Help"
+                authorIconUrl = commandHandler.harmony.self.avatarUrl
+
+                title = "Help page for: `$commandName`"
+
+                if (command.description != null)
+                    description = command.description
+
+                thumbnailUrl = "https://www.thedataschool.co.uk/wp-content/uploads/2019/02/45188-200.png" // Info icon
+
+                color = Color.CYAN
+
+                for ((index, variant) in command.commandVariants.withIndex()) {
+                    addField(EmbedField(
+                        "${index+1}. $commandName ${variant.args.map { "`\$${it.name}`" }.joinToString(" ")}",
+                        variant.description?.take(1024) ?: "",
+                        true
+                    ))
+                }
+
+                footer = context.author.tag
+                footerIconUrl = context.author.avatarUrl
+                timestamp = context.message.timestamp
+            }.send(context.channel)
+        }
+    }
+
+    responder(arg<String>("command", "The command to get information on"),
+              arg<Int>("selector", "The command variant to read about")) {
+        description = "Gets information about a specified command variant"
+
+        handle {
+            val commandName = arg<String>(0)
+            val selector = arg<Int>(1)
+            val command: InvocableCommand = commandHandler.commands.getOrDefault(commandName, null)
+                ?: throw CommandErrorSignal("Command `$commandName` does not exist!")
+            val variant: CommandVariantInfo = command.commandVariants[(selector-1).clamp(0, command.commandVariants.size-1)]
+
+            embed {
+                author = "Help"
+                authorIconUrl = commandHandler.harmony.self.avatarUrl
+
+                title = "Help page for: `$commandName`"
+
+                if (variant.description != null)
+                    description = variant.description
+                else if (command.description != null)
+                    description = command.description
+
+                description = if (description == null) "" else (description + "\n\n")
+
+                if (variant.args.isNotEmpty())
+                    description = description + "__**Arguments**__"
+
+                thumbnailUrl = "https://www.thedataschool.co.uk/wp-content/uploads/2019/02/45188-200.png" // Info icon
+
+                color = Color.CYAN
+
+                for (arg in variant.args) {
+                    val argTypeDesc: String = if (arg.type.isEnum) {
+                        arg.type.declaredFields.filter { it.isEnumConstant }.joinToString("|") { it.name }
+                    } else {
+                        arg.type.simpleName.capitalize()
+                    }
+                    addField(EmbedField("${arg.name}: $argTypeDesc", arg.description ?: "", false))
+                }
+
+                footer = context.author.tag
+                footerIconUrl = context.author.avatarUrl
+                timestamp = context.message.timestamp
+            }.send(context.channel)
         }
     }
 }

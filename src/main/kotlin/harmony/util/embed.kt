@@ -1,5 +1,6 @@
 package harmony.util
 
+import discord4j.core.`object`.entity.channel.MessageChannel
 import discord4j.core.spec.EmbedCreateSpec
 import java.awt.Color
 import java.time.Instant
@@ -33,6 +34,8 @@ data class Embed(
             fields!! + field
         }
     }
+
+    fun send(channel: MessageChannel) = channel.createEmbed(toSpecConsumer())
 
     @Suppress("NULLABILITY_MISMATCH_BASED_ON_JAVA_ANNOTATIONS")
     internal fun toSpecConsumer() = Consumer<EmbedCreateSpec> {

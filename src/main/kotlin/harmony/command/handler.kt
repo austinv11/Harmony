@@ -4,15 +4,19 @@ import discord4j.core.GatewayDiscordClient
 import discord4j.core.event.domain.message.MessageCreateEvent
 import harmony.Harmony
 import harmony.command.CommandTokenizer.Companion.tokenize
+import harmony.command.interfaces.CommandErrorSignal
 import harmony.command.interfaces.CommandResultMapper
 import harmony.util.Feature
 import org.reactivestreams.Publisher
 import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
 import java.util.*
-import java.util.concurrent.CopyOnWriteArrayList
 
 interface CommandHandler {
+
+    val harmony: Harmony
+
+    val commands: Map<String, InvocableCommand>
 
     fun setup(client: GatewayDiscordClient): Mono<Void>
 
@@ -20,12 +24,12 @@ interface CommandHandler {
 }
 
 class HarmonyCommandHandler(
-    val harmony: Harmony,
+    override val harmony: Harmony,
     val options: CommandOptions,
     val commandScanner: Feature<CommandScanner> = Feature.enable(AnnotationProcessorScanner())
 ) : CommandHandler {
 
-    val commands = mutableMapOf<String, InvocableCommand>()
+    override val commands = mutableMapOf<String, InvocableCommand>()
 
     @Suppress("CallingSubscribeInNonBlockingScope", "DEPRECATION")
     override fun setup(client: GatewayDiscordClient): Mono<Void> = Mono.fromRunnable<Void> {
@@ -82,16 +86,20 @@ class HarmonyCommandHandler(
 
                     var response: Any?
                     try {
-                        response = cmd.invoke(harmony, event, args)
+                        try {
+                            response = cmd.invoke(harmony, event, args)
+                        } catch (signal: CommandErrorSignal) {
+                            response = options.commandErrorSignalHandler(harmony, event, signal)
+                        }
                     } catch (e: Throwable) {
-                        response = options.errorResponseMapper(harmony, event, e)
+                        response = options.uncaughtErrorResponseMapper(harmony, event, e)
                     }
 
                     if (response == null) {
                         return@flatMap Mono.empty<Void>()
                     } else if (response is Publisher<*>) {
                         return@flatMap Flux.from(response).flatMap { flattenedResponse ->
-                            if (flattenedResponse == null) return@flatMap Mono.empty()
+                            if (flattenedResponse == null) return@flatMap Mono.empty<Void>()
                             @Suppress("UNCHECKED_CAST") val mapper: CommandResultMapper<Any>? = resultMappers.getOrDefault(flattenedResponse.javaClass, null) as? CommandResultMapper<Any>?
                             return@flatMap mapper?.map(harmony, event, flattenedResponse)?.then() ?: Mono.empty<Void>()
                         }.then()
