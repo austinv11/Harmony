@@ -2,6 +2,7 @@ package harmony.command
 
 import discord4j.core.event.domain.message.MessageCreateEvent
 import harmony.Harmony
+import harmony.command.annotations.BotOwnerOnly
 import harmony.command.annotations.Help
 import harmony.command.annotations.Name
 import harmony.command.annotations.Responder
@@ -144,6 +145,12 @@ class AnnotationProcessorScanner : CommandScanner {
                     }
                 }
 
-        return InvocableCommand(name, description, variantInfo, responderTree)
+        return InvocableCommand(
+            name,
+            description,
+            clazz.isAnnotationPresent(BotOwnerOnly::class.java),
+            variantInfo,
+            responderTree
+        )
     }
 }

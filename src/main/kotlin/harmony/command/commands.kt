@@ -29,11 +29,14 @@ data class CommandVariantInfo(
 data class InvocableCommand(
         val name: String,
         val description: String?,
+        val botOwnerOnly: Boolean,
         val commandVariants: Array<CommandVariantInfo>,
         val responders: Tree
 ) {
 
     fun invoke(harmony: Harmony, event: MessageCreateEvent, tokens: Deque<String>): Any? {
+        if (botOwnerOnly && event.message.author.get().id != harmony.owner.id) throw CommandErrorSignal("Only the bot owner can run this command!")
+
         val responderCandidates = generateCandidates(responders, tokens.size)
 
         for (candidate in responderCandidates) {
@@ -63,6 +66,7 @@ inline fun <reified T> arg(name: String = "arg", description: String? = null) = 
 class CommandBuilder(val name: String) {
 
     var description: String? = null
+    var botOwnerOnly: Boolean = false
     private val responders = mutableListOf<CommandResponderBuilder>()
 
     // Syntactic sugar funcs
@@ -118,7 +122,7 @@ class CommandBuilder(val name: String) {
             }
         }
 
-        return InvocableCommand(name, description, responders.map {
+        return InvocableCommand(name, description, botOwnerOnly, responders.map {
             CommandVariantInfo(it.description, it.args.map { arg -> CommandArgumentInfo(arg.name, arg.description, arg.type) }.toTypedArray())
         }.toTypedArray(), responderTree)
     }
@@ -167,7 +171,9 @@ internal fun helpBuilder(commandHandler: CommandHandler): InvocableCommand = bui
 
         handle {
             val context = this.context
-            val commands = commandHandler.commands.keys.toList()
+            val commands = commandHandler.commands.filter {
+                !it.value.botOwnerOnly || context.author.id == context.harmony.owner.id
+            }.map { it.key }.sorted()
             val pages: List<List<EmbedField>> = commands
                 .map { EmbedField("**$it**", commandHandler.commands[it]!!.description?.take(1024) ?: "", true) }
                 .windowed(10, 10, partialWindows = true) // 10 commands per page

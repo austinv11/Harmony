@@ -17,6 +17,7 @@ class Harmony(
 
     val client: GatewayDiscordClient
     val self: User
+    val owner: User
     internal val selfAsMention: String
     internal val selfAsMentionWithNick: String
     internal val commandHandler: CommandHandler?
@@ -35,6 +36,8 @@ class Harmony(
         self = client.self.block()!!
         selfAsMention = "<@${self.id.asString()}>"
         selfAsMentionWithNick = "<@!${self.id.asString()}>"
+
+        owner = client.applicationInfo.flatMap { it.owner }.block()!!
 
         commandHandler = commands ifEnabled {
             it.commandHook(this, it).apply {
