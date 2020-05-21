@@ -4,6 +4,7 @@ import discord4j.core.GatewayDiscordClient
 import discord4j.core.event.domain.message.MessageCreateEvent
 import harmony.Harmony
 import harmony.command.CommandTokenizer.Companion.tokenize
+import harmony.command.annotations.ChannelType
 import harmony.command.interfaces.CommandErrorSignal
 import harmony.command.interfaces.CommandResultMapper
 import harmony.util.Feature
@@ -87,6 +88,9 @@ class HarmonyCommandHandler(
                     var response: Any?
                     try {
                         try {
+                            if ((cmd.channelType == ChannelType.DM && event.guildId.isPresent)
+                                || (cmd.channelType == ChannelType.SERVER && !event.guildId.isPresent))
+                                throw CommandErrorSignal("This command is not applicable in this channel type! It can only be executed in ${cmd.channelType.name.toLowerCase()} channels!")
                             response = cmd.invoke(harmony, event, args)
                         } catch (signal: CommandErrorSignal) {
                             response = options.commandErrorSignalHandler(harmony, event, signal)

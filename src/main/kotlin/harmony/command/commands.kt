@@ -3,6 +3,7 @@ package harmony.command
 import discord4j.core.`object`.reaction.ReactionEmoji
 import discord4j.core.event.domain.message.MessageCreateEvent
 import harmony.Harmony
+import harmony.command.annotations.ChannelType
 import harmony.command.interfaces.ArgumentMappingException
 import harmony.command.interfaces.CommandArgumentMapper
 import harmony.command.interfaces.CommandErrorSignal
@@ -30,6 +31,7 @@ data class InvocableCommand(
         val name: String,
         val description: String?,
         val botOwnerOnly: Boolean,
+        val channelType: ChannelType,
         val commandVariants: Array<CommandVariantInfo>,
         val responders: Tree
 ) {
@@ -67,6 +69,7 @@ class CommandBuilder(val name: String) {
 
     var description: String? = null
     var botOwnerOnly: Boolean = false
+    var channelType: ChannelType = ChannelType.ALL
     private val responders = mutableListOf<CommandResponderBuilder>()
 
     // Syntactic sugar funcs
@@ -122,7 +125,7 @@ class CommandBuilder(val name: String) {
             }
         }
 
-        return InvocableCommand(name, description, botOwnerOnly, responders.map {
+        return InvocableCommand(name, description, botOwnerOnly, channelType, responders.map {
             CommandVariantInfo(it.description, it.args.map { arg -> CommandArgumentInfo(arg.name, arg.description, arg.type) }.toTypedArray())
         }.toTypedArray(), responderTree)
     }
@@ -236,8 +239,18 @@ internal fun helpBuilder(commandHandler: CommandHandler): InvocableCommand = bui
 
                 title = "Help page for: `$commandName`"
 
-                if (command.description != null)
+                if (command.description != null) {
                     description = command.description
+                }
+
+                if (command.channelType != ChannelType.ALL) {
+                    val msg = "This command can only be executed in ${command.channelType.name} channels."
+                    if (description == null) {
+                        description = msg
+                    } else {
+                        description = "$description\n$msg"
+                    }
+                }
 
                 thumbnailUrl = "https://www.thedataschool.co.uk/wp-content/uploads/2019/02/45188-200.png" // Info icon
 

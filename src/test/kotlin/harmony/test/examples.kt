@@ -3,6 +3,7 @@ package harmony.test
 import discord4j.core.`object`.entity.User
 import harmony.Harmony
 import harmony.command.CommandOptions
+import harmony.command.annotations.ChannelType
 import harmony.command.annotations.Command
 import harmony.command.annotations.Help
 import harmony.command.annotations.Responder
@@ -21,6 +22,7 @@ fun main(args: Array<String>) {
     // You can also explicitly program commands with the kotlin dsl
     harmony.command("reply") { //Creates a "reply" command
         description = "Simply mentions the user that invokes this command" //Help description for the command as a whole
+        channelType = ChannelType.DM
 
         responder { //Declares a no-arg variant of the command
             this.description = "Respond with just a mention" //Describes this variant

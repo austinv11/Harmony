@@ -2,10 +2,7 @@ package harmony.command
 
 import discord4j.core.event.domain.message.MessageCreateEvent
 import harmony.Harmony
-import harmony.command.annotations.BotOwnerOnly
-import harmony.command.annotations.Help
-import harmony.command.annotations.Name
-import harmony.command.annotations.Responder
+import harmony.command.annotations.*
 import harmony.command.interfaces.CommandArgumentMapper
 import harmony.util.InvokeHandle
 import reactor.core.publisher.Flux
@@ -101,6 +98,11 @@ class AnnotationProcessorScanner : CommandScanner {
         else
             clazz.simpleName.removeSuffix("Command").toLowerCase()
 
+        val channelType = if (clazz.isAnnotationPresent(OnlyIn::class.java))
+            clazz.getAnnotation(OnlyIn::class.java).value
+        else
+            ChannelType.ALL
+
         val description: String? = if (clazz.isAnnotationPresent(Help::class.java)) clazz.getAnnotation(Help::class.java).value else null
 
         val responderMethods = instance::class.java.methods
@@ -149,6 +151,7 @@ class AnnotationProcessorScanner : CommandScanner {
             name,
             description,
             clazz.isAnnotationPresent(BotOwnerOnly::class.java),
+            channelType,
             variantInfo,
             responderTree
         )
