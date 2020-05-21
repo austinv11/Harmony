@@ -29,6 +29,7 @@ data class CommandVariantInfo(
 
 data class InvocableCommand(
         val name: String,
+        val aliases: Array<String>?,
         val description: String?,
         val botOwnerOnly: Boolean,
         val channelType: ChannelType,
@@ -67,6 +68,7 @@ inline fun <reified T> arg(name: String = "arg", description: String? = null) = 
 
 class CommandBuilder(val name: String) {
 
+    var aliases: Array<String>? = null
     var description: String? = null
     var botOwnerOnly: Boolean = false
     var channelType: ChannelType = ChannelType.ALL
@@ -125,7 +127,7 @@ class CommandBuilder(val name: String) {
             }
         }
 
-        return InvocableCommand(name, description, botOwnerOnly, channelType, responders.map {
+        return InvocableCommand(name, aliases, description, botOwnerOnly, channelType, responders.map {
             CommandVariantInfo(it.description, it.args.map { arg -> CommandArgumentInfo(arg.name, arg.description, arg.type) }.toTypedArray())
         }.toTypedArray(), responderTree)
     }
@@ -167,6 +169,8 @@ val BACK_ARROW = ReactionEmoji.unicode("⬅️")
 val FORWARD_ARROW = ReactionEmoji.unicode("➡️")
 
 internal fun helpBuilder(commandHandler: CommandHandler): InvocableCommand = buildCommand("help") {
+    aliases = arrayOf("man")
+
     description = "Provides documentation for the commands available"
 
     responder() {
@@ -255,6 +259,9 @@ internal fun helpBuilder(commandHandler: CommandHandler): InvocableCommand = bui
                 thumbnailUrl = "https://www.thedataschool.co.uk/wp-content/uploads/2019/02/45188-200.png" // Info icon
 
                 color = Color.CYAN
+
+                if (command.aliases != null)
+                    addField(EmbedField("Aliases", (arrayOf(command.name) + command.aliases).joinToString(", "), false))
 
                 for ((index, variant) in command.commandVariants.withIndex()) {
                     addField(EmbedField(

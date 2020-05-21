@@ -121,5 +121,7 @@ class HarmonyCommandHandler(
 
     override fun registerCommand(invocableCommand: InvocableCommand) {
         commands[invocableCommand.name] = invocableCommand
+        if (invocableCommand.aliases != null)
+            invocableCommand.aliases.forEach { commands[it] = invocableCommand }
     }
 }

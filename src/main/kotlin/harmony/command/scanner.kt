@@ -98,6 +98,12 @@ class AnnotationProcessorScanner : CommandScanner {
         else
             clazz.simpleName.removeSuffix("Command").toLowerCase()
 
+        val aliases = if (clazz.isAnnotationPresent(Alias::class.java)) {
+            clazz.getAnnotationsByType(Alias::class.java).map { it.value }.distinct().toTypedArray()
+        } else {
+            null
+        }
+
         val channelType = if (clazz.isAnnotationPresent(OnlyIn::class.java))
             clazz.getAnnotation(OnlyIn::class.java).value
         else
@@ -149,6 +155,7 @@ class AnnotationProcessorScanner : CommandScanner {
 
         return InvocableCommand(
             name,
+            aliases,
             description,
             clazz.isAnnotationPresent(BotOwnerOnly::class.java),
             channelType,
