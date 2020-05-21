@@ -2,6 +2,8 @@ package harmony.command
 
 import discord4j.core.`object`.reaction.ReactionEmoji
 import discord4j.core.event.domain.message.MessageCreateEvent
+import discord4j.rest.util.Permission
+import discord4j.rest.util.PermissionSet
 import harmony.Harmony
 import harmony.command.annotations.ChannelType
 import harmony.command.interfaces.ArgumentMappingException
@@ -31,6 +33,7 @@ data class InvocableCommand(
         val name: String,
         val aliases: Array<String>?,
         val description: String?,
+        val requiresPermissions: PermissionSet?,
         val botOwnerOnly: Boolean,
         val channelType: ChannelType,
         val commandVariants: Array<CommandVariantInfo>,
@@ -70,9 +73,22 @@ class CommandBuilder(val name: String) {
 
     var aliases: Array<String>? = null
     var description: String? = null
+    private var requiresPermissions: PermissionSet? = null
     var botOwnerOnly: Boolean = false
     var channelType: ChannelType = ChannelType.ALL
     private val responders = mutableListOf<CommandResponderBuilder>()
+
+    fun requirePermission(permission: Permission) {
+        requirePermissions(PermissionSet.of(permission))
+    }
+
+    fun requirePermissions(vararg permissions: Permission) {
+        requirePermissions(PermissionSet.of(*permissions))
+    }
+
+    fun requirePermissions(permissionSet: PermissionSet) {
+        requiresPermissions = permissionSet
+    }
 
     // Syntactic sugar funcs
     fun responder(builder: CommandResponderBuilder.() -> Unit) {
@@ -127,7 +143,7 @@ class CommandBuilder(val name: String) {
             }
         }
 
-        return InvocableCommand(name, aliases, description, botOwnerOnly, channelType, responders.map {
+        return InvocableCommand(name, aliases, description, requiresPermissions, botOwnerOnly, channelType, responders.map {
             CommandVariantInfo(it.description, it.args.map { arg -> CommandArgumentInfo(arg.name, arg.description, arg.type) }.toTypedArray())
         }.toTypedArray(), responderTree)
     }
@@ -172,6 +188,8 @@ internal fun helpBuilder(commandHandler: CommandHandler): InvocableCommand = bui
     aliases = arrayOf("man")
 
     description = "Provides documentation for the commands available"
+
+    requirePermission(Permission.SEND_MESSAGES)
 
     responder() {
         description = "Lists all available commands"
@@ -261,7 +279,11 @@ internal fun helpBuilder(commandHandler: CommandHandler): InvocableCommand = bui
                 color = Color.CYAN
 
                 if (command.aliases != null)
-                    addField(EmbedField("Aliases", (arrayOf(command.name) + command.aliases).joinToString(", "), false))
+                    addField(EmbedField("Aliases:", (arrayOf(command.name) + command.aliases).joinToString(", "), false))
+
+                if (command.requiresPermissions != null)
+                    addField(EmbedField("Requires Permissions:",
+                        command.requiresPermissions.asEnumSet().joinToString(", ") { it.name }, false))
 
                 for ((index, variant) in command.commandVariants.withIndex()) {
                     addField(EmbedField(

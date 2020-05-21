@@ -91,7 +91,29 @@ class HarmonyCommandHandler(
                             if ((cmd.channelType == ChannelType.DM && event.guildId.isPresent)
                                 || (cmd.channelType == ChannelType.SERVER && !event.guildId.isPresent))
                                 throw CommandErrorSignal("This command is not applicable in this channel type! It can only be executed in ${cmd.channelType.name.toLowerCase()} channels!")
-                            response = cmd.invoke(harmony, event, args)
+
+                            if (event.guildId.isPresent && cmd.requiresPermissions != null
+                                && cmd.requiresPermissions.isNotEmpty()) {
+                                val member = event.member.get()
+                                response = event.guild.flatMap { it.getChannelById(event.message.channelId) }
+                                    .flatMap { it.getEffectivePermissions(member.id) }
+                                    .map { cmd.requiresPermissions.and(it).rawValue == cmd.requiresPermissions.rawValue }
+                                    .flatMap {
+                                        val innerReponse: Any?
+                                        if (it) {
+                                            innerReponse = cmd.invoke(harmony, event, args)
+                                        } else {
+                                            innerReponse = options.commandErrorSignalHandler(harmony, event, CommandErrorSignal("Invalid permissions!"))
+                                        }
+                                        if (innerReponse != null && innerReponse is Publisher<*>) {
+                                            return@flatMap Flux.from(innerReponse).then()
+                                        } else {
+                                            return@flatMap Mono.justOrEmpty(innerReponse)
+                                        }
+                                    }.then()
+                            } else {
+                                response = cmd.invoke(harmony, event, args)
+                            }
                         } catch (signal: CommandErrorSignal) {
                             response = options.commandErrorSignalHandler(harmony, event, signal)
                         }

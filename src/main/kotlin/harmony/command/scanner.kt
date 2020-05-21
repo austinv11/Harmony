@@ -1,12 +1,12 @@
 package harmony.command
 
 import discord4j.core.event.domain.message.MessageCreateEvent
+import discord4j.rest.util.PermissionSet
 import harmony.Harmony
 import harmony.command.annotations.*
 import harmony.command.interfaces.CommandArgumentMapper
 import harmony.util.InvokeHandle
 import reactor.core.publisher.Flux
-import reactor.core.publisher.Mono
 import java.io.BufferedReader
 import java.io.InputStream
 import java.io.InputStreamReader
@@ -110,6 +110,7 @@ class AnnotationProcessorScanner : CommandScanner {
             ChannelType.ALL
 
         val description: String? = if (clazz.isAnnotationPresent(Help::class.java)) clazz.getAnnotation(Help::class.java).value else null
+        val requiresPermissions = if (clazz.isAnnotationPresent(RequiresPermissions::class.java)) PermissionSet.of(*clazz.getAnnotation(RequiresPermissions::class.java).value) else null
 
         val responderMethods = instance::class.java.methods
                 .filter { it.isAnnotationPresent(Responder::class.java) }
@@ -157,6 +158,7 @@ class AnnotationProcessorScanner : CommandScanner {
             name,
             aliases,
             description,
+            requiresPermissions,
             clazz.isAnnotationPresent(BotOwnerOnly::class.java),
             channelType,
             variantInfo,
