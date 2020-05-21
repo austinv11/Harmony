@@ -32,7 +32,7 @@ class HarmonyCommandHandler(
         commandScanner ifEnabled {
             it.scan()
                 .doOnNext { cmd -> registerCommand(cmd) }
-                .then(Mono.just(helpBuilder()).doOnNext { cmd -> registerCommand(cmd) }).subscribe()
+                .then(Mono.just(helpBuilder(this)).doOnNext { cmd -> registerCommand(cmd) }).subscribe()
         }
 
         val resultMappers = getAllResultMappers()
@@ -90,7 +90,11 @@ class HarmonyCommandHandler(
                     if (response == null) {
                         return@flatMap Mono.empty<Void>()
                     } else if (response is Publisher<*>) {
-                        return@flatMap Flux.from(response).then()
+                        return@flatMap Flux.from(response).flatMap { flattenedResponse ->
+                            if (flattenedResponse == null) return@flatMap Mono.empty()
+                            @Suppress("UNCHECKED_CAST") val mapper: CommandResultMapper<Any>? = resultMappers.getOrDefault(flattenedResponse.javaClass, null) as? CommandResultMapper<Any>?
+                            return@flatMap mapper?.map(harmony, event, flattenedResponse)?.then() ?: Mono.empty<Void>()
+                        }.then()
                     } else {
                         @Suppress("UNCHECKED_CAST") val mapper: CommandResultMapper<Any>? = resultMappers.getOrDefault(response.javaClass, null) as? CommandResultMapper<Any>?
                         return@flatMap mapper?.map(harmony, event, response)?.then() ?: Mono.empty<Void>()

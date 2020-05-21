@@ -2,15 +2,9 @@ package harmony.command
 
 import discord4j.core.event.domain.message.MessageCreateEvent
 import harmony.Harmony
-import harmony.command.annotations.Command
-import harmony.command.annotations.Help
-import harmony.command.annotations.Name
-import harmony.command.annotations.Responder
 import harmony.command.interfaces.ArgumentMappingException
 import harmony.command.interfaces.CommandArgumentMapper
 import harmony.util.InvokeHandle
-import java.lang.invoke.MethodHandle
-import java.lang.invoke.MethodHandles
 import java.util.*
 
 data class CommandArgumentInfo(
@@ -154,7 +148,7 @@ class CommandResponderBuilder(internal val args: Array<Arg>) {
     }
 }
 
-internal fun helpBuilder(): InvocableCommand = buildCommand("help") {
+internal fun helpBuilder(commandHandler: CommandHandler): InvocableCommand = buildCommand("help") {
     description = "Provides documentation for the commands available"
 
     responder() {

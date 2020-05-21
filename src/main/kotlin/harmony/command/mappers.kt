@@ -8,11 +8,13 @@ import discord4j.core.`object`.entity.Member
 import discord4j.core.`object`.entity.Role
 import discord4j.core.`object`.entity.User
 import discord4j.core.event.domain.message.MessageCreateEvent
+import discord4j.core.spec.EmbedCreateSpec
 import discord4j.rest.util.Snowflake
 import harmony.Harmony
 import harmony.command.interfaces.ArgumentMappingException
 import harmony.command.interfaces.CommandArgumentMapper
 import harmony.command.interfaces.CommandResultMapper
+import harmony.util.Embed
 import reactor.core.publisher.Mono
 import java.util.*
 import java.util.stream.Collectors
@@ -361,4 +363,12 @@ class ServerResultMapper : CommandResultMapper<Guild> {
 
     override fun map(harmony: Harmony, event: MessageCreateEvent, obj: Guild): Mono<*>?
             = event.message.channel.flatMap { it.createMessage(obj.name) }
+}
+
+@WireService(CommandResultMapper::class)
+class EmbedSpecResultMapper : CommandResultMapper<Embed> {
+    override fun accepts(): Class<Embed> = Embed::class.java
+
+    override fun map(harmony: Harmony, event: MessageCreateEvent, obj: Embed): Mono<*>?
+            = event.message.channel.flatMap { it.createEmbed(obj.toSpecConsumer()) }
 }

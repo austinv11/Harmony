@@ -2,37 +2,47 @@ package harmony.test
 
 import discord4j.core.`object`.entity.User
 import harmony.Harmony
+import harmony.command.CommandOptions
 import harmony.command.annotations.Command
 import harmony.command.annotations.Help
 import harmony.command.annotations.Responder
 import harmony.command.arg
 import harmony.command.command
+import harmony.util.Feature
 
 fun main(args: Array<String>) {
-    val harmony = Harmony(token = args[0]) // Instantiation implicitly logs in and wires all commands
+    // Set up command handling options (by default the bot only responds to @mentions)
+    val commandOptions = Feature.enable(CommandOptions(
+        prefix = "!"
+    ))
 
-    harmony.command("reply") {
-        description = "Simply mentions you with a message you sent"
+    val harmony = Harmony(token = args[0], commands = commandOptions) // Instantiation implicitly logs in and wires all annotated commands
 
-        responder {
-            this.description = "Respond with just a mention"
+    // You can also explicitly program commands with the kotlin dsl
+    harmony.command("reply") { //Creates a "reply" command
+        description = "Simply mentions the user that invokes this command" //Help description for the command as a whole
 
-            handle {
+        responder { //Declares a no-arg variant of the command
+            this.description = "Respond with just a mention" //Describes this variant
+
+            handle { //Callback when the command is called, return value is converted to a response
                 context.author.mention
             }
         }
 
+        // Declares a 1 arg variant of the command that expects a string
         responder(arg<String>("message", "The message to reply with")) {
-            this.description = "Respond with a message attached to the mention"
+            this.description = "Respond with a message attached to the mention" //Describes this variant
 
-            handle {
-                val message = arg<String>(0)
+            handle {// callback
+                val message = arg<String>(0) //Retrieves the first argument
 
-                "${context.author.mention} $message"
+                "${context.author.mention} $message" //responds
             }
         }
     }
 
+    // Keeps the process alive until the bot shuts down
     harmony.awaitClose()
 }
 

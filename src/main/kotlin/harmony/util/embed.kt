@@ -1,0 +1,69 @@
+package harmony.util
+
+import discord4j.core.spec.EmbedCreateSpec
+import java.awt.Color
+import java.time.Instant
+import java.util.function.Consumer
+
+fun embed(modifier: Embed.() -> Unit): Embed = Embed().apply(modifier)
+
+// https://i.stack.imgur.com/HRWHk.png
+data class EmbedField(val name: String, val value: String, val inline: Boolean)
+
+data class Embed(
+    var title: String? = null,
+    var description: String? = null,
+    var url: String? = null,
+    var timestamp: Instant? = null,
+    var color: Color? = null,
+    var footer: String? = null,
+    var footerIconUrl: String? = null,
+    var imageUrl: String? = null,
+    var thumbnailUrl: String? = null,
+    var author: String? = null,
+    var authorUrl: String? = null,
+    var authorIconUrl: String? = null,
+    var fields: Array<EmbedField>? = null
+) {
+
+    fun addField(field: EmbedField) {
+        fields = if (fields == null) {
+            arrayOf(field)
+        } else {
+            fields!! + field
+        }
+    }
+
+    @Suppress("NULLABILITY_MISMATCH_BASED_ON_JAVA_ANNOTATIONS")
+    internal fun toSpecConsumer() = Consumer<EmbedCreateSpec> {
+        if (title != null)
+            it.setTitle(title)
+
+        if (description != null)
+            it.setDescription(description)
+
+        if (url != null)
+            it.setUrl(url)
+
+        if (timestamp != null)
+            it.setTimestamp(timestamp)
+
+        if (color != null)
+            it.setColor(color)
+
+        if (footer != null)
+            it.setFooter(footer, footerIconUrl)
+
+        if (imageUrl != null)
+            it.setImage(imageUrl)
+
+        if (thumbnailUrl != null)
+            it.setThumbnail(thumbnailUrl)
+
+        if (author != null)
+            it.setAuthor(author, authorUrl, authorIconUrl)
+
+        if (fields != null)
+            fields!!.forEach { f -> it.addField(f.name, f.value, f.inline) }
+    }
+}
