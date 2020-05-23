@@ -15,6 +15,18 @@ Kotlin, Harmony is still designed to allow for idiomatic
 use in Java. Kotlin is simply the preferred language 
 since it allows for lots of boilerplate to be excluded.
 
+## Features
+* Statically define commands with aspect-oriented programming 
+(i.e. use annotations on your classes to define properties.)
+* DSL for defining commands imperatively
+* Automatic command discovery and registration
+* Typo detection and correction
+* Automatic help command handling
+* Robust argument parsing
+* Automatic message <-> Java object mapping
+* Built-in error handling/recovery
+* Specialized launcher allows for in place bot restarts
+
 ## Example: Minimal bot
 Goal: Make a bot which can respond to `@BotName ping`
 with `Pong!`

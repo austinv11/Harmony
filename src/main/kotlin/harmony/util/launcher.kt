@@ -5,7 +5,6 @@ package harmony.util
 import harmony.command.interfaces.HarmonyEntryPoint
 import java.io.File
 import java.lang.management.ManagementFactory
-import java.time.Instant
 
 
 private const val MIN_DURATION = 5  // Require uptime to be 5 seconds, if not restarting will not occur to prevent restart loops

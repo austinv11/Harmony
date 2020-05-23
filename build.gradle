@@ -15,6 +15,7 @@ repositories {
 dependencies {
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8"
     implementation("com.discord4j:discord4j-core:3.1.0.M2")
+    implementation 'info.debatty:java-string-similarity:2.0.0'
 
     compileOnly 'com.austinv11.servicer:Servicer:1.0.0'
     annotationProcessor 'com.austinv11.servicer:Servicer:1.0.0'
@@ -38,23 +39,23 @@ jar {
 }
 
 // TODO: Finish setting up for deployments via gh actions
-publishing {
-    repositories {
-        maven {
-            name = "OSSRH"
-            url = "https://oss.sonatype.org/service/local/staging/deploy/maven2/"
-            credentials = {
-                username = System.getenv("MAVEN_USERNAME")
-                password = System.getenv("MAVEN_PASSWORD")
-            }
-        }
-        maven {
-            name = "GitHubPackages"
-            url = "https://maven.pkg.github.com/austinv11/Harmony"
-            credentials = {
-                username = System.getenv("GITHUB_ACTOR")
-                password = System.getenv("GITHUB_TOKEN")
-            }
-        }
-    }
-}
+//publishing {
+//    repositories {
+//        maven {
+//            name = "OSSRH"
+//            url = "https://oss.sonatype.org/service/local/staging/deploy/maven2/"
+//            credentials = {
+//                username = System.getenv("MAVEN_USERNAME")
+//                password = System.getenv("MAVEN_PASSWORD")
+//            }
+//        }
+//        maven {
+//            name = "GitHubPackages"
+//            url = "https://maven.pkg.github.com/austinv11/Harmony"
+//            credentials = {
+//                username = System.getenv("GITHUB_ACTOR")
+//                password = System.getenv("GITHUB_TOKEN")
+//            }
+//        }
+//    }
+//}

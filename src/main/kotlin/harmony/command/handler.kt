@@ -72,18 +72,26 @@ class HarmonyCommandHandler(
                     }
                 }
                 .filter { it.second != null }
-                .map {
-                    val event = it.first
-                    val command = commands.getOrDefault(it.second!!, null) ?: return@map Optional.empty<Triple<MessageCreateEvent, InvocableCommand, Deque<String>>>()
-                    val args = tokenize(it.third!!)
-                    return@map Optional.of(Triple(event, command, args))
-                }
-                .filter { it.isPresent }
                 .flatMap {
-                    val res = it.get()
-                    val event = res.first
-                    val cmd = res.second
-                    val args = res.third
+                    val event = it.first
+                    val command = commands.getOrDefault(it.second!!, null)
+                    val args = tokenize(it.third!!)
+
+                    if (command == null) {
+                        if (options.typoChecking.isEnabled)
+                            return@flatMap options.typoChecking.value.checkForTypos(harmony, event, it.second!!)
+                                .flatMap { suggestion -> Mono.justOrEmpty(commands.getOrDefault(suggestion, null)) }
+                                .map { cmd -> Triple(event, cmd!!, args) }
+                        else
+                            return@flatMap Mono.empty<Triple<MessageCreateEvent, InvocableCommand, Deque<String>>>()
+                    }
+
+                    return@flatMap Mono.just(Triple(event, command, args))
+                }
+                .flatMap {
+                    val event = it.first
+                    val cmd = it.second
+                    val args = it.third
 
                     var response: Any?
                     try {

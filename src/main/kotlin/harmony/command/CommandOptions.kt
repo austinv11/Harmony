@@ -5,6 +5,8 @@ import discord4j.core.event.domain.message.MessageCreateEvent
 import harmony.Harmony
 import harmony.command.interfaces.ArgumentMappingException
 import harmony.command.interfaces.CommandErrorSignal
+import harmony.command.interfaces.TypoChecker
+import harmony.util.Feature
 
 internal val ERROR_EMOJI = "\uD83D\uDEAB"
 internal val ERROR_REACTION = ReactionEmoji.unicode(ERROR_EMOJI)
@@ -27,5 +29,6 @@ data class CommandOptions @JvmOverloads constructor(
             t.printStackTrace()
         }
         null
-    }
+    },
+    val typoChecking: Feature<TypoChecker> = Feature.enable(JaroWinklerTypoChecker())
 )
