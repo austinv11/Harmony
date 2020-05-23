@@ -11,7 +11,7 @@ import reactor.core.publisher.Mono
 import java.time.Duration
 import java.util.concurrent.TimeoutException
 
-const val MIN_SIMILARITY = 0.65
+const val MIN_SIMILARITY = 0.6
 
 val YES_REACTION = ReactionEmoji.unicode("\uD83C\uDDFE")
 val NO_REACTION = ReactionEmoji.unicode("\uD83C\uDDF3")

@@ -25,7 +25,7 @@ since it allows for lots of boilerplate to be excluded.
 * Robust argument parsing
 * Automatic message <-> Java object mapping
 * Built-in error handling/recovery
-* Specialized launcher allows for in place bot restarts
+* A specialized launcher allows for in place bot restarts
 
 ## Example: Minimal bot
 Goal: Make a bot which can respond to `@BotName ping`
