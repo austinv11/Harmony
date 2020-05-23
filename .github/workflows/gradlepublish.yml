@@ -1,4 +1,4 @@
-name: Publish package to the Maven Central Repository and GitHub Packages
+name: Publish package to the JCenter and Maven Central Repository
 on:
   release:
     types: [created]
@@ -12,7 +12,7 @@ jobs:
         with:
           java-version: 13
       - name: Publish to JCenter (which syncs to maven central)
-        run: gradle publish
+        run: gradle bintrayUpload
         env:
           BINTRAY_USER: ${{ secrets.BINTRAY_USER }}
           BINTRAY_KEY: ${{ secrets.BINTRAY_KEY }}
