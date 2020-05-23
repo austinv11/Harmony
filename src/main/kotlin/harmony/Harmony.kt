@@ -8,12 +8,10 @@ import harmony.command.CommandHandler
 import harmony.command.CommandOptions
 import harmony.util.Feature
 
-class Harmony(
-    token: String,
-    val commands: Feature<CommandOptions> = Feature.enable(CommandOptions()),
-    clientHook: (DiscordClient) -> DiscordClient = { dc -> dc },
-    gatewayHook: (GatewayDiscordClient) -> GatewayDiscordClient = { gdc -> gdc }
-) {
+class Harmony @JvmOverloads constructor(token: String,
+                                        val commands: Feature<CommandOptions> = Feature.enable(CommandOptions()),
+                                        clientHook: (DiscordClient) -> DiscordClient = { dc -> dc },
+                                        gatewayHook: (GatewayDiscordClient) -> GatewayDiscordClient = { gdc -> gdc }) {
 
     val client: GatewayDiscordClient
     val self: User
@@ -24,21 +22,17 @@ class Harmony(
 
     init {
         val dc = clientHook(DiscordClient
-            .builder(token)
-            .build())
-
+                .builder(token)
+                .build())
         client = dc.gateway()
-            .setSharding(ShardingStrategy.recommended())
-            .login()
-            .map(gatewayHook)
-            .block()!!
-
+                .setSharding(ShardingStrategy.recommended())
+                .login()
+                .map(gatewayHook)
+                .block()!!
         self = client.self.block()!!
         selfAsMention = "<@${self.id.asString()}>"
         selfAsMentionWithNick = "<@!${self.id.asString()}>"
-
         owner = client.applicationInfo.flatMap { it.owner }.block()!!
-
         commandHandler = commands ifEnabled {
             it.commandHook(this, it).apply {
                 this.setup(client).subscribe()

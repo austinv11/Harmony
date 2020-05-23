@@ -11,7 +11,7 @@ fun embed(modifier: Embed.() -> Unit): Embed = Embed().apply(modifier)
 // https://i.stack.imgur.com/HRWHk.png
 data class EmbedField(val name: String, val value: String, val inline: Boolean)
 
-data class Embed(
+data class Embed @JvmOverloads constructor(
     var title: String? = null,
     var description: String? = null,
     var url: String? = null,

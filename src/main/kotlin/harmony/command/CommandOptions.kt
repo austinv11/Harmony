@@ -9,7 +9,7 @@ import harmony.command.interfaces.CommandErrorSignal
 internal val ERROR_EMOJI = "\uD83D\uDEAB"
 internal val ERROR_REACTION = ReactionEmoji.unicode(ERROR_EMOJI)
 
-data class CommandOptions(
+data class CommandOptions @JvmOverloads constructor(
     val prefix: String? = null,
     val mentionAsPrefix: Boolean = true,
     val commandHook: (Harmony, CommandOptions) -> CommandHandler = { h, co -> HarmonyCommandHandler(h, co) },
