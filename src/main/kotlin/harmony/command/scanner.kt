@@ -16,11 +16,24 @@ import java.lang.invoke.MethodHandles
 import java.lang.reflect.Method
 import java.util.*
 
+/**
+ * An interface representing a class that is able to detect and prepare commands.
+ */
 interface CommandScanner {
 
+    /**
+     * Scans for commands.
+     *
+     * @return The found commands.
+     */
     fun scan(): Flux<InvocableCommand>
 }
 
+/**
+ * The default scanner, leverages annotation processing to quickly detect commands annotated with [Command].
+ *
+ * @see HarmonyAnnotationProcessor
+ */
 class AnnotationProcessorScanner : CommandScanner {
 
     override fun scan(): Flux<InvocableCommand> = openInternalFile("harmony.commands")

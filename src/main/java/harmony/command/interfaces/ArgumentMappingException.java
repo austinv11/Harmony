@@ -1,5 +1,11 @@
 package harmony.command.interfaces;
 
+/**
+ * Lightweight exception that is meant to be throwing if a string cannot be mapped.
+ *
+ * @see CommandArgumentMapper
+ * @see CommandResultMapper
+ */
 public class ArgumentMappingException extends Throwable {
 
     public ArgumentMappingException() {}

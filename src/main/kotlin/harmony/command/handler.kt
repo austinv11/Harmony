@@ -13,14 +13,34 @@ import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
 import java.util.*
 
+/**
+ * A handler for managing commands.
+ */
 interface CommandHandler {
 
+    /**
+     * The harmony instance.
+     */
     val harmony: Harmony
 
+    /**
+     * A map representing the available command names -> implementations.
+     */
     val commands: Map<String, InvocableCommand>
 
+    /**
+     * Called to set up the handler. This is where most command registration should happen.
+     *
+     * @param client The Discord4J client.
+     * @return A mono whose completion signals setup is complete.
+     */
     fun setup(client: GatewayDiscordClient): Mono<Void>
 
+    /**
+     * Registers commands. This allows for late registration.
+     *
+     * @param invocableCommand The command to register.
+     */
     fun registerCommand(invocableCommand: InvocableCommand)
 }
 
@@ -40,7 +60,7 @@ class HarmonyCommandHandler(
                 .then(Mono.just(helpBuilder(this)).doOnNext { cmd -> registerCommand(cmd) }).subscribe()
         }
 
-        val resultMappers = getAllResultMappers()
+        val resultMappers = resultMappers
 
         client.on(MessageCreateEvent::class.java)
                 .filter {

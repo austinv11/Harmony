@@ -1,7 +1,5 @@
 package harmony.command.annotations;
 
-import com.austinv11.servicer.WireService;
-
 import javax.annotation.processing.*;
 import javax.lang.model.SourceVersion;
 import javax.lang.model.element.Element;
@@ -21,7 +19,9 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * Embeds data to make @Command and @SubCommand annotated class discovery efficient.
+ * Annotation processor that embeds data to make @Command annotated class discovery efficient.
+ *
+ * <b>DO NOT instantiate this object yourself.</b>
  */
 // Code based on servicer's source
 @SupportedSourceVersion(SourceVersion.RELEASE_13)

@@ -11,6 +11,25 @@ import harmony.util.Feature
 internal val ERROR_EMOJI = "\uD83D\uDEAB"
 internal val ERROR_REACTION = ReactionEmoji.unicode(ERROR_EMOJI)
 
+/**
+ * Various options that can effect how Harmony handles commands.
+ *
+ * @param prefix The command prefix to use. By default there is no prefix.
+ * @param mentionAsPrefix Whether to allow mentions of the bot to invoke commands. This is true by default.
+ * @param commandHook This is called to create a [CommandHandler]. It uses [HarmonyCommandHandler] by default.
+ * @param commandErrorSignalHandler This is called to handle user-friendly errors. By default, it messages the user with
+ *      the error message, or it reacts to the user's message if there is no response provided.
+ * @param uncaughtErrorResponseMapper This allows for recovering from exceptions. By default it just reports exceptions
+ *      to the console.
+ * @param typoChecking An optional feature that allows for typo checking if a user provides an unrecognized command.
+ *      By default, it is enabled using the [JaroWinklerTypoChecker].
+ *
+ * @see CommandHandler
+ * @see CommandErrorSignal
+ * @see TypoChecker
+ * @see JaroWinklerTypoChecker
+ * @see Feature
+ */
 data class CommandOptions @JvmOverloads constructor(
     val prefix: String? = null,
     val mentionAsPrefix: Boolean = true,

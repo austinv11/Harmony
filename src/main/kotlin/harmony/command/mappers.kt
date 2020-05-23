@@ -8,7 +8,6 @@ import discord4j.core.`object`.entity.Member
 import discord4j.core.`object`.entity.Role
 import discord4j.core.`object`.entity.User
 import discord4j.core.event.domain.message.MessageCreateEvent
-import discord4j.core.spec.EmbedCreateSpec
 import discord4j.rest.util.Snowflake
 import harmony.Harmony
 import harmony.command.interfaces.ArgumentMappingException
@@ -19,14 +18,14 @@ import reactor.core.publisher.Mono
 import java.util.*
 import java.util.stream.Collectors
 
-fun getAllArgumentMappers(): Map<Class<*>, CommandArgumentMapper<*>> = ServiceLoader.load(CommandArgumentMapper::class.java)
+internal fun getAllArgumentMappers(): Map<Class<*>, CommandArgumentMapper<*>> = ServiceLoader.load(CommandArgumentMapper::class.java)
         .stream()
         .map { it.get() }
         .collect(Collectors.toMap({ mapper -> mapper.accepts() }, { it }))
 
 val argumentMappers: Map<Class<*>, CommandArgumentMapper<*>> by lazy { getAllArgumentMappers() }
 
-fun getAllResultMappers(): Map<Class<*>, CommandResultMapper<*>> = ServiceLoader.load(CommandResultMapper::class.java)
+internal fun getAllResultMappers(): Map<Class<*>, CommandResultMapper<*>> = ServiceLoader.load(CommandResultMapper::class.java)
         .stream()
         .map { it.get() }
         .collect(Collectors.toMap({ mapper -> mapper.accepts() }, { it }))

@@ -5,6 +5,11 @@ plugins {
     id "com.jfrog.bintray" version "1.8.3"
     id 'org.jetbrains.kotlin.jvm' version '1.3.72'
     id "org.jetbrains.kotlin.kapt" version "1.3.72"
+//    id 'org.jetbrains.dokka' version '0.10.1'
+}
+
+repositories {
+    jcenter()
 }
 
 ext {
@@ -32,6 +37,11 @@ dependencies {
     testCompile 'io.projectreactor:reactor-tools:3.3.0'
 }
 
+//dokka {  FIXME https://github.com/Kotlin/dokka/issues/294 dokka will be fixed in version 0.11
+//    outputFormat = 'javadoc'
+//    outputDirectory = "$buildDir/javadoc"
+//}
+
 compileKotlin {
     kotlinOptions.jvmTarget = "13"
 }
@@ -53,6 +63,8 @@ jar {
         attributes 'Main-Class': 'harmony.util.Launcher'
     }
 }
+
+//javadocJar.dependsOn dokka
 
 bintray {
     user = System.getenv('BINTRAY_USER')

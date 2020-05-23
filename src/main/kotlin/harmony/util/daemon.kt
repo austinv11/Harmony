@@ -6,6 +6,9 @@ import harmony.command.interfaces.HarmonyEntryPoint
 import java.util.*
 import kotlin.system.exitProcess
 
+/**
+ * This launches harmony through a found entry point.
+ */
 fun main(args: Array<String>) {
     val entryPoint = ServiceLoader.load(HarmonyEntryPoint::class.java).findFirst().asNullable()
             ?: throw Exception("No entry point defined! Have you wired it using @WireService(HarmonyEntryPoint.class)?")

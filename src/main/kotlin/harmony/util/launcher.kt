@@ -10,6 +10,9 @@ import java.lang.management.ManagementFactory
 private const val MIN_DURATION = 5  // Require uptime to be 5 seconds, if not restarting will not occur to prevent restart loops
 
 
+/**
+ * This launches a process which builds a child process that runs Harmony. This allows automatic restarts.
+ */
 fun main(args: Array<String>) {
     // Partially based on https://stackoverflow.com/questions/4159802/how-can-i-restart-a-java-application
     val cmd = mutableListOf<String>()

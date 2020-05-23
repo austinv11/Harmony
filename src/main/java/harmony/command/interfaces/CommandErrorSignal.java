@@ -2,6 +2,13 @@ package harmony.command.interfaces;
 
 import org.jetbrains.annotations.Nullable;
 
+/**
+ * This is a lightweight throwable that allows for propagating user-facing error messages. This is preferred to each
+ * command sending its own error messages to ensure consistent UX.
+ *
+ * @see harmony.command.annotations.Command
+ * @see harmony.command.annotations.Responder
+ */
 public class CommandErrorSignal extends Throwable {
 
     private final @Nullable String message;

@@ -8,14 +8,36 @@ import harmony.command.CommandHandler
 import harmony.command.CommandOptions
 import harmony.util.Feature
 
+/**
+ * The class that handles everything. Instantiation automatically logs in.
+ *
+ * @param token The bot token.
+ * @param commands The options for commands. If disabled no commands are handled.
+ * @param clientHook A callback for decorating a [DiscordClient] before logging in.
+ * @param gatewayHook A callback for decorating a [GatewayDiscordClient] just after logging in.
+ *
+ * @see CommandOptions
+ */
 class Harmony @JvmOverloads constructor(token: String,
                                         val commands: Feature<CommandOptions> = Feature.enable(CommandOptions()),
                                         clientHook: (DiscordClient) -> DiscordClient = { dc -> dc },
                                         gatewayHook: (GatewayDiscordClient) -> GatewayDiscordClient = { gdc -> gdc }) {
 
+    /**
+     * The Discord4J client.
+     */
     val client: GatewayDiscordClient
+
+    /**
+     * The bot's user.
+     */
     val self: User
+
+    /**
+     * The bot's owner's user.
+     */
     val owner: User
+
     internal val selfAsMention: String
     internal val selfAsMentionWithNick: String
     internal val commandHandler: CommandHandler?
@@ -40,10 +62,20 @@ class Harmony @JvmOverloads constructor(token: String,
         }
     }
 
+    /**
+     * Blocks the thread until the bot logs out.
+     *
+     * @see stop
+     */
     fun awaitClose() {
         client.onDisconnect().block()
     }
 
+    /**
+     * Logs the bot out.
+     *
+     * @see awaitClose
+     */
     fun stop() {
         client.logout().block()
     }

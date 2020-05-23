@@ -18,17 +18,43 @@ import java.util.concurrent.atomic.AtomicInteger
 import kotlin.math.ceil
 import kotlin.math.roundToInt
 
+/**
+ * This represents information regarding a command's argument.
+ *
+ * @param name The name of the argument.
+ * @param description The description of the argument if present.
+ * @param type The data type of the argument.
+ */
 data class CommandArgumentInfo(
         val name: String,
         val description: String?,
         val type: Class<*>
 )
 
+/**
+ * This represents information regarding a possible handler for the command (i.e. a set of args).
+ *
+ * @param description The description of this handler if present.
+ * @param args The argument info for this handler.
+ */
 data class CommandVariantInfo(
         val description: String?,
         val args: Array<CommandArgumentInfo>
 )
 
+/**
+ * This represents both information for a command & its handlers, as well as the backing implementations themselves to
+ * call upon.
+ *
+ * @param name The name of the command.
+ * @param aliases The aliases if there are any.
+ * @param description A description of the command if available.
+ * @param requiresPermissions The permissions required of the user requesting the command if any.
+ * @param botOwnerOnly Whether the command is only available to the bot owner.
+ * @param channelType The types of channels this command can be invoked in.
+ * @param commandVariants Information for the handlers available for the command.
+ * @param responders A tree representing mappings from arguments -> handler implementation.
+ */
 data class InvocableCommand(
         val name: String,
         val aliases: Array<String>?,
@@ -40,6 +66,14 @@ data class InvocableCommand(
         val responders: Tree
 ) {
 
+    /**
+     * Called to invoke the command.
+     *
+     * @param harmony The harmony instance.
+     * @param event The context.
+     * @param tokens The tokens to use for argument parsing.
+     * @return The result if there are any.
+     */
     fun invoke(harmony: Harmony, event: MessageCreateEvent, tokens: Deque<String>): Any? {
         if (botOwnerOnly && event.message.author.get().id != harmony.owner.id) throw CommandErrorSignal("Only the bot owner can run this command!")
 
@@ -57,66 +91,184 @@ data class InvocableCommand(
 
 // Command dsl functions
 
+/**
+ * Kotlin DSL for defining commands imperatively. This has feature parity to the aspect-oriented method of defining
+ * commands.
+ *
+ * @param name The name of the command.
+ * @param dsl The lambda that configures the command.
+ */
 fun Harmony.command(name: String, dsl: CommandBuilder.() -> Unit) {
     this.commandHandler?.registerCommand(buildCommand(name, dsl))
 }
 
+/**
+ * Builds a command without registering it.
+ *
+ * @param name The name of the command.
+ * @param dsl The lambda that configures the command.
+ */
 fun buildCommand(name: String, dsl: CommandBuilder.() -> Unit): InvocableCommand = CommandBuilder(name).apply(dsl).build()
 
+/**
+ * A wrapper for defining an argument for a command using the dsl.
+ *
+ * @param type The argument data type.
+ * @param name The name of the argument.
+ * @param description The description of the argument if available.
+ */
 data class Arg(val type: Class<*>,
                val name: String = "arg",
                val description: String? = null)
 
+/**
+ * Syntactic sugar for defining an argument taking advantage of reified generic types.
+ *
+ * @param name The name of the argument.
+ * @param description The description of the argument if available.
+ *
+ * @return The [Arg] instance defined.
+ */
 inline fun <reified T> arg(name: String = "arg", description: String? = null) = Arg(T::class.java, name, description)
 
+/**
+ * Builder for the command dsl.
+ */
 class CommandBuilder(val name: String) {
 
+    /**
+     * The aliases for the command.
+     */
     var aliases: Array<String>? = null
+
+    /**
+     * The description of the command.
+     */
     var description: String? = null
+
+    /**
+     * The permissions that the user invoking the command need.
+     */
     private var requiresPermissions: PermissionSet? = null
+
+    /**
+     * Whether the command can only be used by the owner of the bot.
+     */
     var botOwnerOnly: Boolean = false
+
+    /**
+     * The types of channels this command can be used in.
+     */
     var channelType: ChannelType = ChannelType.ALL
+
     private val responders = mutableListOf<CommandResponderBuilder>()
 
+    /**
+     * Signals to require a permission for the user invoking the command.
+     *
+     * @param permission The permission.
+     */
     fun requirePermission(permission: Permission) {
         requirePermissions(PermissionSet.of(permission))
     }
 
+    /**
+     * Signals to require permissions for the user invoking the command.
+     *
+     * @param permissions The permissions.
+     */
     fun requirePermissions(vararg permissions: Permission) {
         requirePermissions(PermissionSet.of(*permissions))
     }
 
+    /**
+     * Signals to require permissions for the user invoking the command.
+     *
+     * @param permissionSet The permissions.
+     */
     fun requirePermissions(permissionSet: PermissionSet) {
         requiresPermissions = permissionSet
     }
 
     // Syntactic sugar funcs
+
+    /**
+     * Define a command handler with no arguments.
+     *
+     * @param builder The handler dsl.
+     */
     fun responder(builder: CommandResponderBuilder.() -> Unit) {
         @Suppress("RemoveRedundantSpreadOperator")
         responder(builder, *emptyArray())
     }
 
+    /**
+     * Define a command handler with 1 argument.
+     *
+     * @param arg0 The first argument.
+     * @param builder The handler dsl.
+     */
     fun responder(arg0: Arg, builder: CommandResponderBuilder.() -> Unit) {
         responder(builder, arg0)
     }
 
+    /**
+     * Define a command handler with 2 arguments.
+     *
+     * @param arg0 The first argument.
+     * @param arg1 The second argument.
+     * @param builder The handler dsl.
+     */
     fun responder(arg0: Arg, arg1: Arg, builder: CommandResponderBuilder.() -> Unit) {
         responder(builder, arg0, arg1)
     }
 
+    /**
+     * Define a command handler with 3 arguments.
+     *
+     * @param arg0 The first argument.
+     * @param arg1 The second argument.
+     * @param arg2 The third argument.
+     * @param builder The handler dsl.
+     */
     fun responder(arg0: Arg, arg1: Arg, arg2: Arg, builder: CommandResponderBuilder.() -> Unit) {
         responder(builder, arg0, arg1, arg2)
     }
 
+    /**
+     * Define a command handler with 4 arguments.
+     *
+     * @param arg0 The first argument.
+     * @param arg1 The second argument.
+     * @param arg2 The third argument.
+     * @param arg3 The fourth argument.
+     * @param builder The handler dsl.
+     */
     fun responder(arg0: Arg, arg1: Arg, arg2: Arg, arg3: Arg, builder: CommandResponderBuilder.() -> Unit) {
         responder(builder, arg0, arg1, arg2, arg3)
     }
 
+    /**
+     * Define a command handler with 5 arguments.
+     *
+     * @param arg0 The first argument.
+     * @param arg1 The second argument.
+     * @param arg2 The third argument.
+     * @param arg3 The fourth argument.
+     * @param arg4 The fifth argument.
+     * @param builder The handler dsl.
+     */
     fun responder(arg0: Arg, arg1: Arg, arg2: Arg, arg3: Arg, arg4: Arg, builder: CommandResponderBuilder.() -> Unit) {
         responder(builder, arg0, arg1, arg2, arg3, arg4)
     }
 
     // real func
+    /**
+     * Define a command handler with a set of arguments.
+     *
+     * @param builder The handler dsl.
+     * @param args The arguments for the handler.
+     */
     @Suppress("UNCHECKED_CAST")
     fun responder(builder: CommandResponderBuilder.() -> Unit, vararg args: Arg) {
         responders.add(CommandResponderBuilder(args as Array<Arg>).apply(builder))
@@ -149,17 +301,40 @@ class CommandBuilder(val name: String) {
     }
 }
 
+/**
+ * DSL for providing an environment for a command handler.
+ *
+ * @param context The command context.
+ * @param args The raw transformed args.
+ */
 data class CommandResponder(val context: CommandContext,
                             val args: Array<Any?>) {
 
+    /**
+     * Utility function that casts a specified argument.
+     *
+     * @param The index of the argument.
+     */
     inline fun <reified T> arg(i: Int): T = args[i] as T
 }
 
+/**
+ * DSL for providing information for a command handler.
+ */
 class CommandResponderBuilder(internal val args: Array<Arg>) {
 
+    /**
+     * The description of the command variant.
+     */
     var description: String? = null
+
     internal var handle: InvokeHandle? = null
 
+    /**
+     * DSL for the handler function.
+     *
+     * @param handler The handler dsl.
+     */
     fun handle(handler: CommandResponder.() -> Any?) {
         handle = object : InvokeHandle {
             val converters: Array<CommandArgumentMapper<*>>

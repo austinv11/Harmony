@@ -6,11 +6,22 @@ import java.awt.Color
 import java.time.Instant
 import java.util.function.Consumer
 
+/**
+ * DSL for building an embed.
+ *
+ * @see Embed
+ */
 fun embed(modifier: Embed.() -> Unit): Embed = Embed().apply(modifier)
 
 // https://i.stack.imgur.com/HRWHk.png
+/**
+ * @see EmbedCreateSpec
+ */
 data class EmbedField(val name: String, val value: String, val inline: Boolean)
 
+/**
+ * @see EmbedCreateSpec
+ */
 data class Embed @JvmOverloads constructor(
     var title: String? = null,
     var description: String? = null,

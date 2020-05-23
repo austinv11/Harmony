@@ -5,6 +5,9 @@ import harmony.command.interfaces.CommandArgumentMapper
 import java.lang.StringBuilder
 import java.util.*
 
+/**
+ * Takes a string -> java arguments for given mappers.
+ */
 class CommandTokenizer(private val paramMappers: Array<CommandArgumentMapper<*>>,
                        private val nonContextParamCount: Int = paramMappers
                                .count { !CommandContext::class.java.isAssignableFrom(it.accepts()) }

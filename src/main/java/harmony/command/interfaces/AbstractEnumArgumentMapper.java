@@ -4,6 +4,12 @@ import harmony.command.CommandContext;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+/**
+ * Utility class for implementing an argument mapper for a custom enum class.
+ *
+ * @see CommandArgumentMapper
+ * @see com.austinv11.servicer.WireService
+ */
 public abstract class AbstractEnumArgumentMapper<T extends Enum<T>> implements CommandArgumentMapper<T> {
 
     @Nullable

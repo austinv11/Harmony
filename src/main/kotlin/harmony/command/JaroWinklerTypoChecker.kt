@@ -18,6 +18,12 @@ val NO_REACTION = ReactionEmoji.unicode("\uD83C\uDDF3")
 
 val TIMEOUT = Duration.ofMinutes(1)
 
+/**
+ * The default typo checker. Built on the JaroWinkler algorithm. If a typo is detected, it will prompt the user to
+ * confirm the suggested command. It will wait for 1 minute for a response.
+ *
+ * @see TypoChecker
+ */
 class JaroWinklerTypoChecker : TypoChecker {
 
     val jaroWinkler = JaroWinkler()

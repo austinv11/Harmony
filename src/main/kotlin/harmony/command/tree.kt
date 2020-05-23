@@ -2,6 +2,9 @@ package harmony.command
 
 import harmony.util.InvokeHandle
 
+/**
+ * A node used to represent commands as a tree of arguments.
+ */
 class Node(val type: Class<*> = Void::class.java,
            var obj: InvokeHandle? = null,
            private val _children: MutableMap<Class<*>, Node> = mutableMapOf(),
