@@ -2,6 +2,7 @@ package harmony.command.interfaces;
 
 import com.austinv11.servicer.Service;
 import harmony.Harmony;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * When implemented and marked with {@link com.austinv11.servicer.WireService}, it is used as the bots entry point.
@@ -27,7 +28,7 @@ public interface HarmonyEntryPoint {
      * @param programArgs The args received from the main method.
      * @return The token to use.
      */
-    default String getToken(String[] programArgs) {
+    default @NotNull String getToken(@NotNull String[] programArgs) {
         return programArgs[0];  // Assumes token is the only arg
     }
 
@@ -41,7 +42,7 @@ public interface HarmonyEntryPoint {
      *
      * @see Harmony
      */
-    default Harmony buildHarmony(String token) {
+    default @NotNull Harmony buildHarmony(@NotNull String token) {
         return new Harmony(token);
     }
 
@@ -56,7 +57,7 @@ public interface HarmonyEntryPoint {
      *
      * @see Harmony#stop()
      */
-    default ExitSignal startBot(Harmony harmony) {
+    default @NotNull ExitSignal startBot(@NotNull Harmony harmony) {
         try {
             harmony.awaitClose();
             return ExitSignal.COMPLETE_CLOSE;
