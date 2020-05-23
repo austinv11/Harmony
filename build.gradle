@@ -26,7 +26,7 @@ repositories {
 
 dependencies {
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8"
-    implementation("com.discord4j:discord4j-core:3.1.0.M2")
+    api "com.discord4j:discord4j-core:3.1.0.M2"
     implementation 'info.debatty:java-string-similarity:2.0.0'
 
     compileOnly 'com.austinv11.servicer:Servicer:1.0.0'
