@@ -32,30 +32,29 @@ fun main(args: Array<String>) {
         cmd.add(arg)
     }
 
-    var lastExitCode: Int
+    var exitSignal: HarmonyEntryPoint.ExitSignal
     do {
         val startTime = System.currentTimeMillis()
 
-        lastExitCode = ProcessBuilder(cmd)
+        val lastExitCode = ProcessBuilder(cmd)
                 .inheritIO()
                 .start()
                 .waitFor()
 
-        val exitStatus: HarmonyEntryPoint.ExitSignal
         if (lastExitCode !in HarmonyEntryPoint.ExitSignal.BASE_EXIT_CODE until (HarmonyEntryPoint.ExitSignal.BASE_EXIT_CODE + HarmonyEntryPoint.ExitSignal.values().size)) {
             System.err.println("WARNING: Harmony daemon ended with unexpected exit code $lastExitCode!")
             System.err.println("This will be treated as an abnormal close exit status!")
-            exitStatus = HarmonyEntryPoint.ExitSignal.ABNORMAL_CLOSE
+            exitSignal = HarmonyEntryPoint.ExitSignal.ABNORMAL_CLOSE
         } else {
-            exitStatus = HarmonyEntryPoint.ExitSignal.values()[lastExitCode-8000]
-            println("Harmony daemon closed with exit status: $exitStatus")
+            exitSignal = HarmonyEntryPoint.ExitSignal.values()[lastExitCode-8000]
+            println("Harmony daemon closed with exit status: $exitSignal")
         }
 
-        if (exitStatus != HarmonyEntryPoint.ExitSignal.COMPLETE_CLOSE
+        if (exitSignal != HarmonyEntryPoint.ExitSignal.COMPLETE_CLOSE
                 && (System.currentTimeMillis() - startTime) < MIN_DURATION * 1000) {
             System.err.println("Harmony process died after less than $MIN_DURATION seconds, it will NOT be restarted!")
             break
         }
 
-    } while (lastExitCode != HarmonyEntryPoint.ExitSignal.COMPLETE_CLOSE.ordinal)
+    } while (exitSignal != HarmonyEntryPoint.ExitSignal.COMPLETE_CLOSE)
 }
