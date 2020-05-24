@@ -11,8 +11,11 @@ import javax.lang.model.util.Types;
 import javax.tools.Diagnostic;
 import javax.tools.FileObject;
 import javax.tools.StandardLocation;
+import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.io.Writer;
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -69,17 +72,37 @@ public class HarmonyAnnotationProcessor extends AbstractProcessor {
 //            }
 //        }
 
+        String location = "META-INF/harmony.commands";
         try {
-            FileObject fo = filer.createResource(StandardLocation.CLASS_OUTPUT,
-                    "", "META-INF/harmony.commands");
+            FileObject fo = filer.getResource(StandardLocation.CLASS_OUTPUT, "", location);
+
+            try (BufferedReader reader = new BufferedReader(new InputStreamReader(fo.openInputStream(),
+                    StandardCharsets.UTF_8))) { // Can't check if it exists, must catch an exception from here
+
+                reader.lines()
+                        .map(line -> {
+                            int comment = line.indexOf("#");
+                            return (comment >= 0 ? line.substring(0, comment) : line).trim();
+                        })
+                        .filter(line -> !line.isEmpty())
+                        .forEach(commandNames::add);
+            }
+        } catch (Exception e) {
+            messager.printMessage(Diagnostic.Kind.NOTE, location + " does not yet exist!\n");
+        }
+
+        try {
+
+            FileObject fo = filer.createResource(StandardLocation.CLASS_OUTPUT, "", location);
             try (Writer w = fo.openWriter()) {
                 for (String name : commandNames) {
-                    messager.printMessage(Diagnostic.Kind.NOTE, "Setting up " + name + " for use as a command handler!");
+                    messager.printMessage(Diagnostic.Kind.NOTE, "Setting up " + name + " for use as a command handler!\n");
                     w.append(name).append("\n");
                 }
             }
         } catch (IOException e) {
             messager.printMessage(Diagnostic.Kind.ERROR, e.getMessage());
+            e.printStackTrace();
         }
 
 //        try {
