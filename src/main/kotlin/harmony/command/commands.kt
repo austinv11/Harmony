@@ -376,7 +376,7 @@ internal fun helpBuilder(commandHandler: CommandHandler): InvocableCommand = bui
             }.map { it.key }.sorted()
             val pages: List<List<EmbedField>> = commands
                 .map { EmbedField("**$it**", commandHandler.commands[it]!!.description?.take(1024) ?: "", true) }
-                .windowed(10, 10, partialWindows = true) // 10 commands per page
+                .windowed(6, 6, partialWindows = true) // 6 commands per page
 
             val currPage = AtomicInteger(0)
 
