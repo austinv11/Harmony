@@ -14,7 +14,7 @@ repositories {
 
 ext {
     grp = 'com.austinv11.harmony'
-    ver = '1.0.4'
+    ver = '1.0.5'
 }
 
 group grp

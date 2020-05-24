@@ -101,7 +101,7 @@ public class HarmonyAnnotationProcessor extends AbstractProcessor {
                 }
             }
         } catch (Exception e) {
-            messager.printMessage(Diagnostic.Kind.ERROR, e.getMessage());
+            messager.printMessage(Diagnostic.Kind.NOTE, e.getMessage());
         }
 
 //        try {
