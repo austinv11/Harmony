@@ -5,21 +5,16 @@ import javax.lang.model.SourceVersion;
 import javax.lang.model.element.Element;
 import javax.lang.model.element.ElementKind;
 import javax.lang.model.element.TypeElement;
-import javax.lang.model.type.MirroredTypeException;
 import javax.lang.model.util.Elements;
 import javax.lang.model.util.Types;
 import javax.tools.Diagnostic;
 import javax.tools.FileObject;
 import javax.tools.StandardLocation;
 import java.io.BufferedReader;
-import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.Writer;
 import java.nio.charset.StandardCharsets;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 /**
  * Annotation processor that embeds data to make @Command annotated class discovery efficient.
@@ -37,13 +32,14 @@ public class HarmonyAnnotationProcessor extends AbstractProcessor {
     private Elements elementUtils;
     private Filer filer;
     private Messager messager;
+    private Set<String> commandNames = Collections.synchronizedSet(new HashSet<>());
 
     public HarmonyAnnotationProcessor() {} // Required
 
     @Override
     public synchronized void init(ProcessingEnvironment processingEnv) {
         super.init(processingEnv);
-        System.out.println("TEST");
+
         typeUtils = processingEnv.getTypeUtils();
         elementUtils = processingEnv.getElementUtils();
         filer = processingEnv.getFiler();
@@ -52,13 +48,19 @@ public class HarmonyAnnotationProcessor extends AbstractProcessor {
 
     @Override
     public boolean process(Set<? extends TypeElement> annotations, RoundEnvironment roundEnv) {
-        Set<String> commandNames = new HashSet<>(); //Hold fqns of @Command annotated classes
-        Map<String, String> subCommands = new HashMap<>(); // Handle fqns of @SubCommend annotation -> @Command annotated classes
+        if (roundEnv.errorRaised())
+            return false;
+
+//        Map<String, String> subCommands = new HashMap<>(); // Handle fqns of @SubCommend annotation -> @Command annotated classes
         for (Element annotated : roundEnv.getElementsAnnotatedWith(Command.class)) {
             if (annotated.getKind() == ElementKind.CLASS) {
                 commandNames.add(annotated.asType().toString());
             }
         }
+
+        if (!roundEnv.processingOver())  // Only process at end
+            return true;
+
 //        for (Element annotated : roundEnv.getElementsAnnotatedWith(SubCommand.class)) {
 //            if (annotated.getKind() == ElementKind.CLASS) {
 //                SubCommand subCommand = annotated.getAnnotationsByType(SubCommand.class)[0];
@@ -88,7 +90,7 @@ public class HarmonyAnnotationProcessor extends AbstractProcessor {
                         .forEach(commandNames::add);
             }
             fo.delete();
-        } catch (Exception e) {
+        } catch (Throwable e) {
             messager.printMessage(Diagnostic.Kind.NOTE, location + " does not yet exist!\n");
         }
 
@@ -100,8 +102,8 @@ public class HarmonyAnnotationProcessor extends AbstractProcessor {
                     w.append(name).append("\n");
                 }
             }
-        } catch (Exception e) {
-            messager.printMessage(Diagnostic.Kind.NOTE, e.getMessage());
+        } catch (Throwable e) {
+            messager.printMessage(Diagnostic.Kind.NOTE, "Error caught attempting to output data.");
         }
 
 //        try {
