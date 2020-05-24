@@ -87,12 +87,12 @@ public class HarmonyAnnotationProcessor extends AbstractProcessor {
                         .filter(line -> !line.isEmpty())
                         .forEach(commandNames::add);
             }
+            fo.delete();
         } catch (Exception e) {
             messager.printMessage(Diagnostic.Kind.NOTE, location + " does not yet exist!\n");
         }
 
         try {
-
             FileObject fo = filer.createResource(StandardLocation.CLASS_OUTPUT, "", location);
             try (Writer w = fo.openWriter()) {
                 for (String name : commandNames) {
@@ -100,7 +100,7 @@ public class HarmonyAnnotationProcessor extends AbstractProcessor {
                     w.append(name).append("\n");
                 }
             }
-        } catch (IOException e) {
+        } catch (Exception e) {
             messager.printMessage(Diagnostic.Kind.ERROR, e.getMessage());
         }
 
