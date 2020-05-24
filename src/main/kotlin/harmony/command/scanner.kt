@@ -89,10 +89,11 @@ class AnnotationProcessorScanner : CommandScanner {
 
         override fun tryInvoke(harmony: Harmony, event: MessageCreateEvent, tokens: Deque<String>): Any? {
             if (effectiveArgCount == 0) {
+                // This could be optimized in java, but MethodHandle intrinsics are broken in kotlin
                 if (containsContextArg) {
                     return handle.invokeWithArguments(CommandContext.fromMessageCreateEvent(harmony, event))
                 } else {
-                    return handle.invoke()
+                    return handle.invokeWithArguments()
                 }
             }
 
