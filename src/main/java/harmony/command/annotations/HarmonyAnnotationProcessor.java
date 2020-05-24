@@ -102,7 +102,6 @@ public class HarmonyAnnotationProcessor extends AbstractProcessor {
             }
         } catch (IOException e) {
             messager.printMessage(Diagnostic.Kind.ERROR, e.getMessage());
-            e.printStackTrace();
         }
 
 //        try {
