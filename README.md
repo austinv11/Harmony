@@ -26,6 +26,7 @@ since it allows for lots of boilerplate to be excluded.
 * Automatic message <-> Java object mapping
 * Built-in error handling/recovery
 * A specialized launcher allows for in place bot restarts
+* Ability for dynamic command prefixes on a per-channel basis
 
 ## Example: Minimal bot
 Goal: Make a bot which can respond to `@BotName ping`

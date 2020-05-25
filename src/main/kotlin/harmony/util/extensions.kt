@@ -3,6 +3,7 @@ package harmony.util
 import discord4j.core.`object`.entity.Member
 import discord4j.core.`object`.entity.Message
 import discord4j.core.event.domain.message.ReactionAddEvent
+import harmony.command.interfaces.PrefixProvider
 import java.util.*
 
 /**
@@ -28,3 +29,8 @@ fun Int.clamp(min: Int, max: Int) = Math.min(max, Math.max(min, this))
  * Converts [Optional] to a kotlin nullable type.
  */
 fun <T> Optional<T>.asNullable(): T? = this.orElse(null)
+
+/**
+ * Converts [String] to a static [PrefixProvider].
+ */
+fun String.asPrefix() = PrefixProvider.staticPrefixProvider(this)

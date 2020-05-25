@@ -72,10 +72,16 @@ class HarmonyCommandHandler(
                         return@map it to it.message.content.removePrefix(harmony.selfAsMentionWithNick).stripLeading()
                     } else if (options.mentionAsPrefix && it.message.content.startsWith(harmony.selfAsMention)) {
                         return@map it to it.message.content.removePrefix(harmony.selfAsMention).stripLeading()
-                    } else if (options.prefix != null && it.message.content.startsWith(options.prefix)) {
-                        return@map it to it.message.content.removePrefix(options.prefix).stripLeading()
                     } else {
-                        return@map it to null
+                        val prefix = if (it.guildId.isPresent)
+                            options.prefix.getGuildPrefix(it.guildId.get())
+                        else
+                            options.prefix.getDmPrefix(it.message.author.get().id)
+                        if (prefix.isPresent && it.message.content.startsWith(prefix.get())) {
+                            return@map it to it.message.content.removePrefix(prefix.get()).stripLeading()
+                        } else {
+                            return@map it to null
+                        }
                     }
                 }
                 .filter { it.second != null }

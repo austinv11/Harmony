@@ -9,12 +9,14 @@ import harmony.command.annotations.Help
 import harmony.command.annotations.Responder
 import harmony.command.arg
 import harmony.command.command
+import harmony.command.interfaces.PrefixProvider
 import harmony.util.Feature
+import harmony.util.asPrefix
 
 fun main(args: Array<String>) {
     // Set up command handling options (by default the bot only responds to @mentions)
     val commandOptions = Feature.enable(CommandOptions(
-        prefix = "!"
+        prefix = "!".asPrefix()
     ))
 
     val harmony = Harmony(token = args[0], commands = commandOptions) // Instantiation implicitly logs in and wires all annotated commands
