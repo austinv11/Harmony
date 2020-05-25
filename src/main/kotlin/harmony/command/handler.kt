@@ -74,7 +74,7 @@ class HarmonyCommandHandler(
                         return@map it to it.message.content.removePrefix(harmony.selfAsMention).stripLeading()
                     } else {
                         val prefix = if (it.guildId.isPresent)
-                            options.prefix.getGuildPrefix(it.guildId.get())
+                            options.prefix.getGuildPrefix(it.guildId.get(), it.message.channelId)
                         else
                             options.prefix.getDmPrefix(it.message.author.get().id)
                         if (prefix.isPresent && it.message.content.startsWith(prefix.get())) {
