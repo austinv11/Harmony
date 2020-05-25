@@ -5,14 +5,15 @@ import discord4j.rest.util.PermissionSet
 import harmony.Harmony
 import harmony.command.annotations.*
 import harmony.command.interfaces.CommandArgumentMapper
+import harmony.command.util.CommandLambdaFunction
+import harmony.command.util.CommandWrapper
+import harmony.command.util.ProcessorUtils.methodHash
 import harmony.util.InvokeHandle
 import reactor.core.publisher.Flux
 import java.io.BufferedReader
 import java.io.InputStream
 import java.io.InputStreamReader
 import java.lang.RuntimeException
-import java.lang.invoke.MethodHandle
-import java.lang.invoke.MethodHandles
 import java.lang.reflect.Method
 import java.util.*
 
@@ -72,35 +73,19 @@ class AnnotationProcessorScanner : CommandScanner {
         throw RuntimeException("No applicable constructor found!")
     }
 
-    private fun makeHandle(obj: Any, method: Method): InvokeHandle = object: InvokeHandle {
-        val handle: MethodHandle
-        val containsContextArg: Boolean
-        val effectiveArgCount: Int
+    private fun makeHandle(obj: Any, method: Method, wrapper: CommandWrapper, index: Int): InvokeHandle = object: InvokeHandle {
         val converters: Array<CommandArgumentMapper<*>>
         val tokenHandler: CommandTokenizer
+        val function: CommandLambdaFunction
 
         init {
-            effectiveArgCount = method.parameterTypes.filter { !CommandContext::class.java.isAssignableFrom(it) }.count()
-            containsContextArg = effectiveArgCount != method.parameterCount
-            handle = MethodHandles.lookup().`in`(obj::class.java).unreflect(method).bindTo(obj)
             converters = method.parameterTypes.map { argumentMappers[it]!! }.toTypedArray()
             tokenHandler = CommandTokenizer(converters)
+            function = wrapper.functions()[index]
         }
 
         override fun tryInvoke(harmony: Harmony, event: MessageCreateEvent, tokens: Deque<String>): Any? {
-            if (effectiveArgCount == 0) {
-                // This could be optimized in java, but MethodHandle intrinsics are broken in kotlin
-                if (containsContextArg) {
-                    return handle.invokeWithArguments(CommandContext.fromMessageCreateEvent(harmony, event))
-                } else {
-                    return handle.invokeWithArguments()
-                }
-            }
-
-            val context = CommandContext.fromMessageCreateEvent(harmony, event)
-            val args = tokenHandler.map(context, tokens)
-
-            return handle.invokeWithArguments(args)
+            return function.call(tokenHandler, harmony, event, tokens)
         }
     }
 
@@ -144,13 +129,16 @@ class AnnotationProcessorScanner : CommandScanner {
             return@map CommandVariantInfo(variantDesc, params.toTypedArray())
         }.toTypedArray()
 
+        val commandWrapper: CommandWrapper = Class.forName(instance::class.java.name + "\$CommandWrapper")
+            .getDeclaredConstructor().newInstance(instance) as CommandWrapper
+
         val responderTree = Tree()
-        responderMethods.sortedBy { it.parameterCount }
-                .forEach {
+        responderMethods.sortedBy { methodHash(it) }
+                .forEachIndexed { i, it ->
                     var currNode: Node = responderTree
                     if (it.parameterCount == 0
                             || (it.parameterCount == 1 && CommandContext::class.java.isAssignableFrom(it.parameterTypes[0]))) {
-                        currNode.obj = makeHandle(instance, it)
+                        currNode.obj = makeHandle(instance, it, commandWrapper, i)
                     } else {
                         for (param in it.parameterTypes) {
                             if (CommandContext::class.java.isAssignableFrom(param))
@@ -164,7 +152,7 @@ class AnnotationProcessorScanner : CommandScanner {
                                 currNode = newNode
                             }
                         }
-                        currNode.obj = makeHandle(instance, it)
+                        currNode.obj = makeHandle(instance, it, commandWrapper, i)
                     }
                 }
 

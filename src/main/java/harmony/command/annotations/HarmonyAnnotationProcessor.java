@@ -1,20 +1,34 @@
 package harmony.command.annotations;
 
+import com.squareup.javapoet.*;
+import discord4j.core.event.domain.message.MessageCreateEvent;
+import harmony.Harmony;
+import harmony.command.CommandContext;
+import harmony.command.CommandTokenizer;
+import harmony.command.interfaces.ArgumentMappingException;
+import harmony.command.interfaces.CommandErrorSignal;
+import harmony.command.util.CommandLambdaFunction;
+import harmony.command.util.CommandWrapper;
+import harmony.command.util.ProcessorUtils;
+
 import javax.annotation.processing.*;
 import javax.lang.model.SourceVersion;
-import javax.lang.model.element.Element;
-import javax.lang.model.element.ElementKind;
-import javax.lang.model.element.TypeElement;
+import javax.lang.model.element.*;
+import javax.lang.model.type.TypeKind;
+import javax.lang.model.type.TypeMirror;
 import javax.lang.model.util.Elements;
 import javax.lang.model.util.Types;
 import javax.tools.Diagnostic;
 import javax.tools.FileObject;
 import javax.tools.StandardLocation;
 import java.io.BufferedReader;
+import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.Writer;
+import java.lang.reflect.Type;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * Annotation processor that embeds data to make @Command annotated class discovery efficient.
@@ -46,6 +60,119 @@ public class HarmonyAnnotationProcessor extends AbstractProcessor {
         messager = processingEnv.getMessager();
     }
 
+    private int methodHash(ExecutableElement ee) {
+        return ProcessorUtils.methodHash(ee.getSimpleName().toString(),
+                ee.getReturnType().toString(), ee.getParameters().stream()
+                        .map(VariableElement::asType).map(TypeMirror::toString)
+                        .toArray(String[]::new));
+    }
+
+    private void generateWrapperFor(Element element) throws IOException {  // Generates an impl to harmony.command.util.CommandLambdaFunction that maps responders
+        String[] split = element.asType().toString().split("\\.");
+        String typeName = split[split.length-1];
+        String packageName = element.asType().toString().replace("." + typeName, "");
+
+        List<ExecutableElement> methods = element.getEnclosedElements()
+                .stream()
+                .filter(e -> e.getKind() == ElementKind.METHOD && e.getAnnotationsByType(Responder.class).length > 0)
+                .map(e -> (ExecutableElement) e)
+                .sorted(Comparator.comparingInt(this::methodHash))
+                .collect(Collectors.toList());
+
+        int i = 0;
+        for (ExecutableElement method : methods) {
+            boolean hasReturn = method.getReturnType().getKind() != TypeKind.VOID;
+            boolean hasArgs = method.getParameters().size() > 0;
+            boolean hasContext = method.getParameters()
+                    .stream()
+                    .anyMatch(param -> typeUtils.isSameType(elementUtils.getTypeElement("harmony.command.CommandContext").asType(), param.asType()));
+            boolean isStatic = method.getModifiers().contains(Modifier.STATIC);
+
+            CodeBlock.Builder impl = CodeBlock.builder();
+
+            String callPrefix = hasReturn ? "Object returnVal = (Object) " : "";
+            callPrefix += isStatic ? "" : "cmdInstance.";
+
+            if (!hasArgs) {
+                impl.addStatement(callPrefix + "$L();", method.getSimpleName().toString());
+            } else {
+                impl.addStatement("$T context = $T.fromMessageCreateEvent(harmony, event);",
+                        CommandContext.class, CommandContext.class);
+
+                if (hasContext && method.getParameters().size() == 1) { // only arg is context
+                    impl.addStatement(callPrefix + "$L(context);", method.getSimpleName().toString());
+                } else {
+                    impl.addStatement("$L mappedArgs = tokenHandler.map(context, tokens);", List.class);
+                    StringJoiner paramCalls = new StringJoiner(",");
+                    int paramCount = 0;
+                    for (VariableElement param : method.getParameters()) {
+                        if (typeUtils.isSameType(elementUtils.getTypeElement("harmony.command.CommandContext").asType(), param.asType())) {
+                            paramCalls.add("context");
+                        } else {
+                            paramCalls.add("mappedArgs.get(" + paramCount + ")");
+                            paramCount++;
+                        }
+                    }
+                    impl.addStatement(callPrefix + "$L($L);", method.getSimpleName().toString(), paramCalls.toString());
+                }
+            }
+
+            if (hasReturn)
+                impl.addStatement("return returnVal;");
+            else
+                impl.addStatement("return null;");
+
+            MethodSpec callMethod = MethodSpec.methodBuilder("call")
+                    .returns(Object.class)
+                    .addParameter(CommandTokenizer.class, "tokenHandler")
+                    .addParameter(Harmony.class, "harmony")
+                    .addParameter(MessageCreateEvent.class, "event")
+                    .addParameter(Deque.class, "tokens")
+                    .addAnnotation(Override.class)
+                    .addException(CommandErrorSignal.class)
+                    .addException(ArgumentMappingException.class)
+                    .addCode(impl.build())
+                    .build();
+
+            TypeSpec type = TypeSpec.classBuilder(typeName + "$CommandWrapper$" + i)
+                    .addSuperinterface(CommandLambdaFunction.class)
+                    .addMethod(callMethod)
+                    .addField(FieldSpec.builder(TypeName.get(element.asType()), "cmdInstance", Modifier.FINAL).build())
+                    .addMethod(MethodSpec
+                            .constructorBuilder()
+                            .addParameter(TypeName.get(element.asType()), "self")
+                            .addCode("this.cmdInstance = self;")
+                            .build())
+                    .build();
+
+            JavaFile.builder(packageName, type).build().writeTo(filer);
+
+            i++;
+        }
+
+        TypeSpec wrapper = TypeSpec.classBuilder(typeName + "$CommandWrapper")
+                .addSuperinterface(CommandWrapper.class)
+                .addField(FieldSpec.builder(TypeName.get(CommandLambdaFunction[].class),
+                        "funcs", Modifier.FINAL).build())
+                .addMethod(MethodSpec
+                        .constructorBuilder()
+                        .addParameter(TypeName.get(element.asType()), "self")
+                        .addCode(CodeBlock.builder()
+                                .addStatement("this.funcs = new $T[" + i + "];", CommandLambdaFunction.class)
+                                .beginControlFlow("for (int i = 0; i < $L; i++)", i)
+                                .addStatement("this.funcs[i] = new $L.$L$CommandWrapper$L(this);", packageName, typeName, i-1)
+                                .endControlFlow()
+                                .build())
+                        .build())
+                .addMethod(MethodSpec.methodBuilder("functions")
+                        .returns(CommandLambdaFunction[].class)
+                        .addCode("return this.funcs;")
+                        .build())
+        .build();
+
+        JavaFile.builder(packageName, wrapper).build().writeTo(filer);
+    }
+
     @Override
     public boolean process(Set<? extends TypeElement> annotations, RoundEnvironment roundEnv) {
         if (roundEnv.errorRaised())
@@ -55,6 +182,11 @@ public class HarmonyAnnotationProcessor extends AbstractProcessor {
         for (Element annotated : roundEnv.getElementsAnnotatedWith(Command.class)) {
             if (annotated.getKind() == ElementKind.CLASS) {
                 commandNames.add(annotated.asType().toString());
+                try {
+                    generateWrapperFor(annotated);
+                } catch (IOException e) {
+                    messager.printMessage(Diagnostic.Kind.NOTE, "Unable to generate wrapper for" + annotated.asType().toString() + "\n");
+                }
             }
         }
 
