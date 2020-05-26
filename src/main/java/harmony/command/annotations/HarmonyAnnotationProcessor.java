@@ -94,36 +94,33 @@ public class HarmonyAnnotationProcessor extends AbstractProcessor {
             callPrefix += isStatic ? "" : "cmdInstance.";
 
             if (!hasArgs) {
-                impl.addStatement(callPrefix + "$L();", method.getSimpleName().toString());
+                impl.addStatement(callPrefix + "$L()", method.getSimpleName().toString());
             } else {
-                impl.addStatement("$T context = $T.fromMessageCreateEvent(harmony, event);",
+                impl.addStatement("$T context = $T.fromMessageCreateEvent(harmony, event)",
                         CommandContext.class, CommandContext.class);
 
                 if (hasContext && method.getParameters().size() == 1) { // only arg is context
-                    impl.addStatement(callPrefix + "$L(context);", method.getSimpleName().toString());
+                    impl.addStatement(callPrefix + "$L(context)", method.getSimpleName().toString());
                 } else {
-                    impl.addStatement("$L mappedArgs = tokenHandler.map(context, tokens);", List.class);
+                    impl.addStatement("$T mappedArgs = tokenHandler.map(context, tokens)", List.class);
                     StringJoiner paramCalls = new StringJoiner(",");
                     int paramCount = 0;
                     for (VariableElement param : method.getParameters()) {
-                        if (typeUtils.isSameType(elementUtils.getTypeElement("harmony.command.CommandContext").asType(), param.asType())) {
-                            paramCalls.add("context");
-                        } else {
-                            paramCalls.add("mappedArgs.get(" + paramCount + ")");
-                            paramCount++;
-                        }
+                        paramCalls.add("(" + param.asType().toString() + ") mappedArgs.get(" + paramCount + ")");
+                        paramCount++;
                     }
                     impl.addStatement(callPrefix + "$L($L);", method.getSimpleName().toString(), paramCalls.toString());
                 }
             }
 
             if (hasReturn)
-                impl.addStatement("return returnVal;");
+                impl.addStatement("return returnVal");
             else
-                impl.addStatement("return null;");
+                impl.addStatement("return null");
 
             MethodSpec callMethod = MethodSpec.methodBuilder("call")
                     .returns(Object.class)
+                    .addModifiers(Modifier.PUBLIC)
                     .addParameter(CommandTokenizer.class, "tokenHandler")
                     .addParameter(Harmony.class, "harmony")
                     .addParameter(MessageCreateEvent.class, "event")
@@ -135,11 +132,13 @@ public class HarmonyAnnotationProcessor extends AbstractProcessor {
                     .build();
 
             TypeSpec type = TypeSpec.classBuilder(typeName + "$CommandWrapper$" + i)
+                    .addModifiers(Modifier.PUBLIC)
                     .addSuperinterface(CommandLambdaFunction.class)
                     .addMethod(callMethod)
                     .addField(FieldSpec.builder(TypeName.get(element.asType()), "cmdInstance", Modifier.FINAL).build())
                     .addMethod(MethodSpec
                             .constructorBuilder()
+                            .addModifiers(Modifier.PUBLIC)
                             .addParameter(TypeName.get(element.asType()), "self")
                             .addCode("this.cmdInstance = self;")
                             .build())
@@ -150,21 +149,26 @@ public class HarmonyAnnotationProcessor extends AbstractProcessor {
             i++;
         }
 
+        CodeBlock.Builder wiringBlock = CodeBlock.builder()
+                .addStatement("this.funcs = new $T[" + i + "]", CommandLambdaFunction.class);
+
+        for (int j = 0; j < i; j++) {
+            wiringBlock.addStatement("this.funcs[$L] = ($T) new $L.$L$LCommandWrapper$L$L(self)", j, CommandLambdaFunction.class, packageName, typeName, "$", "$", j);
+        }
+
         TypeSpec wrapper = TypeSpec.classBuilder(typeName + "$CommandWrapper")
+                .addModifiers(Modifier.PUBLIC)
                 .addSuperinterface(CommandWrapper.class)
                 .addField(FieldSpec.builder(TypeName.get(CommandLambdaFunction[].class),
                         "funcs", Modifier.FINAL).build())
                 .addMethod(MethodSpec
                         .constructorBuilder()
+                        .addModifiers(Modifier.PUBLIC)
                         .addParameter(TypeName.get(element.asType()), "self")
-                        .addCode(CodeBlock.builder()
-                                .addStatement("this.funcs = new $T[" + i + "];", CommandLambdaFunction.class)
-                                .beginControlFlow("for (int i = 0; i < $L; i++)", i)
-                                .addStatement("this.funcs[i] = new $L.$L$CommandWrapper$L(this);", packageName, typeName, i-1)
-                                .endControlFlow()
-                                .build())
+                        .addCode(wiringBlock.build())
                         .build())
                 .addMethod(MethodSpec.methodBuilder("functions")
+                        .addModifiers(Modifier.PUBLIC)
                         .returns(CommandLambdaFunction[].class)
                         .addCode("return this.funcs;")
                         .build())

@@ -130,7 +130,7 @@ class AnnotationProcessorScanner : CommandScanner {
         }.toTypedArray()
 
         val commandWrapper: CommandWrapper = Class.forName(instance::class.java.name + "\$CommandWrapper")
-            .getDeclaredConstructor().newInstance(instance) as CommandWrapper
+            .getDeclaredConstructor(instance::class.java).newInstance(instance) as CommandWrapper
 
         val responderTree = Tree()
         responderMethods.sortedBy { methodHash(it) }

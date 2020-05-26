@@ -140,11 +140,11 @@ class HarmonyCommandHandler(
                                             innerReponse = options.commandErrorSignalHandler(harmony, event, CommandErrorSignal("Invalid permissions!"))
                                         }
                                         if (innerReponse != null && innerReponse is Publisher<*>) {
-                                            return@flatMap Flux.from(innerReponse).then()
+                                            return@flatMap Flux.from(innerReponse).next()
                                         } else {
                                             return@flatMap Mono.justOrEmpty(innerReponse)
                                         }
-                                    }.then()
+                                    }
                             } else {
                                 response = cmd.invoke(harmony, event, args)
                             }
