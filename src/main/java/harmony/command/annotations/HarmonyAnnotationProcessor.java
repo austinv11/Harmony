@@ -91,19 +91,20 @@ public class HarmonyAnnotationProcessor extends AbstractProcessor {
 
             CodeBlock.Builder impl = CodeBlock.builder();
 
-            String callPrefix = "return mappedArgsMono.flatMap((mappedArgs) -> {";
+            String callPrefix = hasArgs && !(hasContext && method.getParameters().size() == 1) ?
+                    "return mappedArgsMono.flatMap((mappedArgs) -> {" : "return {";
             callPrefix += hasReturn ? "return $T.justOrEmpty(" : "return $T.fromRunnable(() -> {";
             callPrefix += isStatic ? "" : "cmdInstance.";
             String callSuffix = hasReturn ? "}))" : "}}))";
 
             if (!hasArgs) {
-                impl.addStatement(callPrefix + "$L()", method.getSimpleName().toString());
+                impl.addStatement(callPrefix + "$L()" + callSuffix, Mono.class, method.getSimpleName().toString());
             } else {
                 impl.addStatement("$T context = $T.fromMessageCreateEvent(harmony, event)",
                         CommandContext.class, CommandContext.class);
 
                 if (hasContext && method.getParameters().size() == 1) { // only arg is context
-                    impl.addStatement(callPrefix + "$L(context)", method.getSimpleName().toString());
+                    impl.addStatement(callPrefix + "$L(context)" + callSuffix, Mono.class, method.getSimpleName().toString());
                 } else {
                     impl.addStatement("$T<$T> mappedArgsMono = tokenHandler.map(context, tokens)", Mono.class, List.class);
                     StringJoiner paramCalls = new StringJoiner(",");
