@@ -89,7 +89,6 @@ class CommandTokenizer(private val paramMappers: Array<CommandArgumentMapper<*>>
         }
     }
 
-    @Throws(ArgumentMappingException::class)
     fun map(context: CommandContext, toks: Deque<String>): Mono<List<*>> {
         // Collapse trailing string as final argument
         if (toks.size >= nonContextParamCount && String::class.java.isAssignableFrom(paramMappers.last().accepts())) {
