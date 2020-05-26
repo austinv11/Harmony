@@ -101,16 +101,16 @@ public class HarmonyAnnotationProcessor extends AbstractProcessor {
             if (needsArgMapping)
                 callSuffix = hasReturn ? "})" : "}}))";
             else
-                callSuffix = hasReturn ? ")}" : "})})";
+                callSuffix = hasReturn ? ");}" : "})}";
 
             if (!hasArgs) {
-                impl.addStatement(callPrefix + "$L()" + callSuffix, Mono.class, method.getSimpleName().toString());
+                impl.add(callPrefix + "$L()" + callSuffix, Mono.class, method.getSimpleName().toString());
             } else {
                 impl.addStatement("$T context = $T.fromMessageCreateEvent(harmony, event)",
                         CommandContext.class, CommandContext.class);
 
                 if (hasContext && method.getParameters().size() == 1) { // only arg is context
-                    impl.addStatement(callPrefix + "$L(context)" + callSuffix, Mono.class, method.getSimpleName().toString());
+                    impl.add(callPrefix + "$L(context)" + callSuffix, Mono.class, method.getSimpleName().toString());
                 } else {
                     impl.addStatement("$T<$T> mappedArgsMono = tokenHandler.map(context, tokens)", Mono.class, List.class);
                     StringJoiner paramCalls = new StringJoiner(",");
@@ -124,15 +124,13 @@ public class HarmonyAnnotationProcessor extends AbstractProcessor {
             }
 
             MethodSpec callMethod = MethodSpec.methodBuilder("call")
-                    .returns(Object.class)
+                    .returns(Mono.class)
                     .addModifiers(Modifier.PUBLIC)
                     .addParameter(CommandTokenizer.class, "tokenHandler")
                     .addParameter(Harmony.class, "harmony")
                     .addParameter(MessageCreateEvent.class, "event")
                     .addParameter(Deque.class, "tokens")
                     .addAnnotation(Override.class)
-                    .addException(CommandErrorSignal.class)
-                    .addException(ArgumentMappingException.class)
                     .addCode(impl.build())
                     .build();
 
