@@ -348,7 +348,7 @@ class ChannelArgumentMapper : AbstractChannelArgumentMapper<Channel>() {
 }
 
 @WireService(CommandResultMapper::class)
-class ChannelResultMapper : AbstractChannelArgumentMapper<Channel>() {
+class ChannelResultMapper : AbstractChannelResultMapper<Channel>() {
     override fun accepts(): Class<Channel> = Channel::class.java
 }
 
@@ -358,7 +358,7 @@ class GuildChannelArgumentMapper : AbstractChannelArgumentMapper<GuildChannel>()
 }
 
 @WireService(CommandResultMapper::class)
-class GuildChannelResultMapper : AbstractChannelArgumentMapper<GuildChannel>() {
+class GuildChannelResultMapper : AbstractChannelResultMapper<GuildChannel>() {
     override fun accepts(): Class<GuildChannel> = GuildChannel::class.java
 }
 
@@ -368,7 +368,7 @@ class GuildMessageChannelArgumentMapper : AbstractChannelArgumentMapper<GuildMes
 }
 
 @WireService(CommandResultMapper::class)
-class GuildMessageChannelResultMapper : AbstractChannelArgumentMapper<GuildMessageChannel>() {
+class GuildMessageChannelResultMapper : AbstractChannelResultMapper<GuildMessageChannel>() {
     override fun accepts(): Class<GuildMessageChannel> = GuildMessageChannel::class.java
 }
 
@@ -378,7 +378,7 @@ class MessageChannelArgumentMapper : AbstractChannelArgumentMapper<MessageChanne
 }
 
 @WireService(CommandResultMapper::class)
-class MessageChannelResultMapper : AbstractChannelArgumentMapper<MessageChannel>() {
+class MessageChannelResultMapper : AbstractChannelResultMapper<MessageChannel>() {
     override fun accepts(): Class<MessageChannel> = MessageChannel::class.java
 }
 
@@ -388,7 +388,7 @@ class TextChannelArgumentMapper : AbstractChannelArgumentMapper<TextChannel>() {
 }
 
 @WireService(CommandResultMapper::class)
-class TextChannelResultMapper : AbstractChannelArgumentMapper<TextChannel>() {
+class TextChannelResultMapper : AbstractChannelResultMapper<TextChannel>() {
     override fun accepts(): Class<TextChannel> = TextChannel::class.java
 }
 
