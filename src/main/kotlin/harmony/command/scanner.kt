@@ -10,6 +10,7 @@ import harmony.command.util.CommandWrapper
 import harmony.command.util.ProcessorUtils.methodHash
 import harmony.util.InvokeHandle
 import reactor.core.publisher.Flux
+import reactor.core.publisher.Mono
 import java.io.BufferedReader
 import java.io.InputStream
 import java.io.InputStreamReader
@@ -84,7 +85,7 @@ class AnnotationProcessorScanner : CommandScanner {
             function = wrapper.functions()[index]
         }
 
-        override fun tryInvoke(harmony: Harmony, event: MessageCreateEvent, tokens: Deque<String>): Any? {
+        override fun tryInvoke(harmony: Harmony, event: MessageCreateEvent, tokens: Deque<String>): Mono<Any> {
             return function.call(tokenHandler, harmony, event, tokens)
         }
     }

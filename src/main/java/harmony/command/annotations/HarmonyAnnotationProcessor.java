@@ -10,6 +10,7 @@ import harmony.command.interfaces.CommandErrorSignal;
 import harmony.command.util.CommandLambdaFunction;
 import harmony.command.util.CommandWrapper;
 import harmony.command.util.ProcessorUtils;
+import reactor.core.publisher.Mono;
 
 import javax.annotation.processing.*;
 import javax.lang.model.SourceVersion;
@@ -36,7 +37,7 @@ import java.util.stream.Collectors;
  * <b>DO NOT instantiate this object yourself.</b>
  */
 // Code based on servicer's source
-@SupportedSourceVersion(SourceVersion.RELEASE_13)
+@SupportedSourceVersion(SourceVersion.RELEASE_12)
 @SupportedAnnotationTypes({
         "harmony.command.annotations.Command"
 //        "harmony.command.annotations.SubCommand"
@@ -90,8 +91,10 @@ public class HarmonyAnnotationProcessor extends AbstractProcessor {
 
             CodeBlock.Builder impl = CodeBlock.builder();
 
-            String callPrefix = hasReturn ? "Object returnVal = (Object) " : "";
+            String callPrefix = "return mappedArgsMono.flatMap((mappedArgs) -> {";
+            callPrefix += hasReturn ? "return $T.justOrEmpty(" : "return $T.fromRunnable(() -> {";
             callPrefix += isStatic ? "" : "cmdInstance.";
+            String callSuffix = hasReturn ? "}))" : "}}))";
 
             if (!hasArgs) {
                 impl.addStatement(callPrefix + "$L()", method.getSimpleName().toString());
@@ -102,21 +105,16 @@ public class HarmonyAnnotationProcessor extends AbstractProcessor {
                 if (hasContext && method.getParameters().size() == 1) { // only arg is context
                     impl.addStatement(callPrefix + "$L(context)", method.getSimpleName().toString());
                 } else {
-                    impl.addStatement("$T mappedArgs = tokenHandler.map(context, tokens)", List.class);
+                    impl.addStatement("$T<$T> mappedArgsMono = tokenHandler.map(context, tokens)", Mono.class, List.class);
                     StringJoiner paramCalls = new StringJoiner(",");
                     int paramCount = 0;
                     for (VariableElement param : method.getParameters()) {
                         paramCalls.add("(" + param.asType().toString() + ") mappedArgs.get(" + paramCount + ")");
                         paramCount++;
                     }
-                    impl.addStatement(callPrefix + "$L($L);", method.getSimpleName().toString(), paramCalls.toString());
+                    impl.addStatement(callPrefix + "$L($L));" + callSuffix, Mono.class, method.getSimpleName().toString(), paramCalls.toString());
                 }
             }
-
-            if (hasReturn)
-                impl.addStatement("return returnVal");
-            else
-                impl.addStatement("return null");
 
             MethodSpec callMethod = MethodSpec.methodBuilder("call")
                     .returns(Object.class)

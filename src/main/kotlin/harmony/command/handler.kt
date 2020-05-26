@@ -119,7 +119,7 @@ class HarmonyCommandHandler(
                     val cmd = it.second
                     val args = it.third
 
-                    var response: Any?
+                    var response: Mono<Any>
                     try {
                         try {
                             if ((cmd.channelType == ChannelType.DM && event.guildId.isPresent)
@@ -133,40 +133,29 @@ class HarmonyCommandHandler(
                                     .flatMap { it.getEffectivePermissions(member.id) }
                                     .map { cmd.requiresPermissions.and(it).rawValue == cmd.requiresPermissions.rawValue }
                                     .flatMap {
-                                        val innerReponse: Any?
+                                        val innerResponse: Mono<Any>
                                         if (it) {
-                                            innerReponse = cmd.invoke(harmony, event, args)
+                                            innerResponse = cmd.invoke(harmony, event, args)
                                         } else {
-                                            innerReponse = options.commandErrorSignalHandler(harmony, event, CommandErrorSignal("Invalid permissions!"))
+                                            innerResponse = Mono.justOrEmpty(options.commandErrorSignalHandler(harmony, event, CommandErrorSignal("Invalid permissions!")))
                                         }
-                                        if (innerReponse != null && innerReponse is Publisher<*>) {
-                                            return@flatMap Flux.from(innerReponse).next()
-                                        } else {
-                                            return@flatMap Mono.justOrEmpty(innerReponse)
-                                        }
+                                        return@flatMap innerResponse
                                     }
                             } else {
                                 response = cmd.invoke(harmony, event, args)
                             }
                         } catch (signal: CommandErrorSignal) {
-                            response = options.commandErrorSignalHandler(harmony, event, signal)
+                            response = Mono.justOrEmpty(options.commandErrorSignalHandler(harmony, event, signal))
                         }
                     } catch (e: Throwable) {
-                        response = options.uncaughtErrorResponseMapper(harmony, event, e)
+                        response = Mono.justOrEmpty(options.uncaughtErrorResponseMapper(harmony, event, e))
                     }
 
-                    if (response == null) {
-                        return@flatMap Mono.empty<Void>()
-                    } else if (response is Publisher<*>) {
-                        return@flatMap Flux.from(response).flatMap { flattenedResponse ->
-                            if (flattenedResponse == null) return@flatMap Mono.empty<Void>()
-                            @Suppress("UNCHECKED_CAST") val mapper: CommandResultMapper<Any>? = resultMappers.getOrDefault(flattenedResponse.javaClass, null) as? CommandResultMapper<Any>?
-                            return@flatMap mapper?.map(harmony, event, flattenedResponse)?.then() ?: Mono.empty<Void>()
-                        }.then()
-                    } else {
-                        @Suppress("UNCHECKED_CAST") val mapper: CommandResultMapper<Any>? = resultMappers.getOrDefault(response.javaClass, null) as? CommandResultMapper<Any>?
-                        return@flatMap mapper?.map(harmony, event, response)?.then() ?: Mono.empty<Void>()
-                    }
+                    return@flatMap response.flatMap { if (it is Publisher<*>) Mono.from(it) else Mono.justOrEmpty(it) }
+                            .flatMap { res ->
+                                val mapper: CommandResultMapper<Any>? = resultMappers.getOrDefault(res.javaClass, null) as? CommandResultMapper<Any>?
+                                mapper?.map(harmony, event, res)?.then() ?: Mono.empty<Void>()
+                            }
                 }
                 .onErrorContinue { throwable, obj ->
                     println("Error caught for object $obj!")

@@ -4,6 +4,8 @@ import com.austinv11.servicer.Service;
 import harmony.command.CommandContext;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.reactivestreams.Publisher;
+import reactor.core.publisher.Mono;
 
 /**
  * Implement this interface to create a custom mapper that converts a string to java object.
@@ -34,5 +36,5 @@ public interface CommandArgumentMapper<T> {
      *
      * @throws ArgumentMappingException Throw this to signal that it is impossible to map a token to the java object type.
      */
-    @Nullable T map(@NotNull CommandContext context, @NotNull String token) throws ArgumentMappingException;
+    @NotNull Mono<T> map(@NotNull CommandContext context, @NotNull String token) throws ArgumentMappingException;
 }

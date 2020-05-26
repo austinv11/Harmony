@@ -10,6 +10,8 @@ import harmony.command.interfaces.ArgumentMappingException
 import harmony.command.interfaces.CommandArgumentMapper
 import harmony.command.interfaces.CommandErrorSignal
 import harmony.util.*
+import org.reactivestreams.Publisher
+import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
 import java.awt.Color
 import java.time.Duration
@@ -74,18 +76,16 @@ data class InvocableCommand(
      * @param tokens The tokens to use for argument parsing.
      * @return The result if there are any.
      */
-    fun invoke(harmony: Harmony, event: MessageCreateEvent, tokens: Deque<String>): Any? {
-        if (botOwnerOnly && event.message.author.get().id != harmony.owner.id) throw CommandErrorSignal("Only the bot owner can run this command!")
+    fun invoke(harmony: Harmony, event: MessageCreateEvent, tokens: Deque<String>): Mono<Any> {
+        if (botOwnerOnly && event.message.author.get().id != harmony.owner.id) return Mono.error(CommandErrorSignal("Only the bot owner can run this command!"))
 
         val responderCandidates = generateCandidates(responders, tokens.size)
 
         for (candidate in responderCandidates) {
-            try {
-                return candidate.tryInvoke(harmony, event, tokens)
-            } catch (e: ArgumentMappingException) {}
+            return candidate.tryInvoke(harmony, event, tokens)
         }
 
-        return null
+        return Mono.empty()
     }
 }
 
@@ -308,7 +308,7 @@ class CommandBuilder(val name: String) {
  * @param args The raw transformed args.
  */
 data class CommandResponder(val context: CommandContext,
-                            val args: Array<Any?>) {
+                            val args: List<Any?>) {
 
     /**
      * Utility function that casts a specified argument.
@@ -345,12 +345,20 @@ class CommandResponderBuilder(internal val args: Array<Arg>) {
                 tokenHandler = CommandTokenizer(converters)
             }
 
-            override fun tryInvoke(harmony: Harmony, event: MessageCreateEvent, tokens: Deque<String>): Any? {
+            override fun tryInvoke(harmony: Harmony, event: MessageCreateEvent, tokens: Deque<String>): Mono<Any> {
                 val context = CommandContext.fromMessageCreateEvent(harmony, event)
 
-                val mapped = tokens.zip(converters).map { it.second.map(context, it.first) }.toTypedArray()
-
-                return handler(CommandResponder(context, mapped))
+                return Flux.fromIterable(tokens.zip(converters))
+                        .flatMapSequential { it.second.map(context, it.first) }
+                        .collectList()
+                        .flatMap { args ->
+                            val res = handler(CommandResponder(context, args))
+                            if (res != null && res is Publisher<*>) {
+                                return@flatMap Flux.from(res).thenEmpty(Mono.empty())
+                            } else {
+                                return@flatMap Mono.justOrEmpty(res)
+                            }
+                        }
             }
         }
     }

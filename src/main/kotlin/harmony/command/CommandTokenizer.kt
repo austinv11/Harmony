@@ -2,6 +2,8 @@ package harmony.command
 
 import harmony.command.interfaces.ArgumentMappingException
 import harmony.command.interfaces.CommandArgumentMapper
+import reactor.core.publisher.Flux
+import reactor.core.publisher.Mono
 import java.lang.StringBuilder
 import java.util.*
 
@@ -88,7 +90,7 @@ class CommandTokenizer(private val paramMappers: Array<CommandArgumentMapper<*>>
     }
 
     @Throws(ArgumentMappingException::class)
-    fun map(context: CommandContext, toks: Deque<String>): List<*> {
+    fun map(context: CommandContext, toks: Deque<String>): Mono<List<*>> {
         // Collapse trailing string as final argument
         if (toks.size >= nonContextParamCount && String::class.java.isAssignableFrom(paramMappers.last().accepts())) {
             val collapsed = mutableListOf<String>()
@@ -99,24 +101,25 @@ class CommandTokenizer(private val paramMappers: Array<CommandArgumentMapper<*>>
         }
 
         if (toks.size != nonContextParamCount) {
-            throw ArgumentMappingException()
+            return Mono.error(ArgumentMappingException())
         }
 
-        val args = mutableListOf<Any?>()
+        val args = mutableListOf<Pair<CommandArgumentMapper<*>, String>>()
 
         try {
             for (mapper in paramMappers) {
                 if (mapper.accepts() == CommandContext::class.java) {
-                    args.add(mapper.map(context, toks.peek()))
+                    args.add(mapper to toks.peek())
                 } else {
-                    args.add(mapper.map(context, toks.pop()))
+                    args.add(mapper to toks.pop())
                 }
             }
-            return args
-        } catch (e: ArgumentMappingException) {
-            throw e
+
+            return Flux.fromIterable(args)
+                    .flatMapSequential { it.first.map(context, it.second) }
+                    .collectList()
         } catch (e: Throwable) {
-            throw ArgumentMappingException()
+            return Mono.error(ArgumentMappingException())
         }
     }
 }

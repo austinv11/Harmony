@@ -7,6 +7,7 @@ import discord4j.core.`object`.entity.Guild
 import discord4j.core.`object`.entity.Member
 import discord4j.core.`object`.entity.Role
 import discord4j.core.`object`.entity.User
+import discord4j.core.`object`.entity.channel.*
 import discord4j.core.event.domain.message.MessageCreateEvent
 import discord4j.rest.util.Snowflake
 import harmony.Harmony
@@ -37,14 +38,14 @@ val resultMappers: Map<Class<*>, CommandResultMapper<*>> by lazy { getAllResultM
 class ContextArgumentMapper : CommandArgumentMapper<CommandContext> {
     override fun accepts() = CommandContext::class.java
 
-    override fun map(context: CommandContext, token: String) = context
+    override fun map(context: CommandContext, token: String) = Mono.just(context)
 }
 
 @WireService(CommandArgumentMapper::class)
 class StringArgumentMapper : CommandArgumentMapper<String> {
     override fun accepts() = String::class.java
 
-    override fun map(context: CommandContext, token: String) = token
+    override fun map(context: CommandContext, token: String) = Mono.just(token)
 }
 
 @WireService(CommandResultMapper::class)
@@ -59,11 +60,11 @@ class StringResultMapper : CommandResultMapper<String> {
 class IntegerWrapperArgumentMapper : CommandArgumentMapper<java.lang.Integer> {
     override fun accepts(): Class<java.lang.Integer> = java.lang.Integer::class.java
 
-    override fun map(context: CommandContext, token: String): java.lang.Integer? {
+    override fun map(context: CommandContext, token: String): Mono<java.lang.Integer> {
         try {
-            return java.lang.Integer.parseInt(token) as java.lang.Integer
+            return Mono.just(java.lang.Integer.parseInt(token) as java.lang.Integer)
         } catch (e: Throwable) {
-            throw ArgumentMappingException()
+            return Mono.error(ArgumentMappingException())
         }
     }
 }
@@ -80,11 +81,11 @@ class IntegerWrapperResultMapper : CommandResultMapper<java.lang.Integer> {
 class IntPrimitiveArgumentMapper : CommandArgumentMapper<Int> {
     override fun accepts(): Class<Int> = java.lang.Integer.TYPE
 
-    override fun map(context: CommandContext, token: String): Int? {
+    override fun map(context: CommandContext, token: String): Mono<Int> {
         try {
-            return java.lang.Integer.parseInt(token)
+            return Mono.just(java.lang.Integer.parseInt(token))
         } catch (e: Throwable) {
-            throw ArgumentMappingException()
+            return Mono.error(ArgumentMappingException())
         }
     }
 }
@@ -101,11 +102,11 @@ class IntPrimitiveResultMapper : CommandResultMapper<Int> {
 class BooleanWrapperArgumentMapper : CommandArgumentMapper<java.lang.Boolean> {
     override fun accepts(): Class<java.lang.Boolean> = java.lang.Boolean::class.java
 
-    override fun map(context: CommandContext, token: String): java.lang.Boolean? {
+    override fun map(context: CommandContext, token: String): Mono<java.lang.Boolean> {
         try {
-            return java.lang.Boolean.parseBoolean(token) as java.lang.Boolean
+            return Mono.just(java.lang.Boolean.parseBoolean(token) as java.lang.Boolean)
         } catch (e: Throwable) {
-            throw ArgumentMappingException()
+            return Mono.error(ArgumentMappingException())
         }
     }
 }
@@ -122,11 +123,11 @@ class BooleanWrapperResultMapper : CommandResultMapper<java.lang.Boolean> {
 class BooleanPrimitiveArgumentMapper : CommandArgumentMapper<Boolean> {
     override fun accepts(): Class<Boolean> = java.lang.Boolean.TYPE
 
-    override fun map(context: CommandContext, token: String): Boolean? {
+    override fun map(context: CommandContext, token: String): Mono<Boolean> {
         try {
-            return java.lang.Boolean.parseBoolean(token)
+            return Mono.just(java.lang.Boolean.parseBoolean(token))
         } catch (e: Throwable) {
-            throw ArgumentMappingException()
+            return Mono.error(ArgumentMappingException())
         }
     }
 }
@@ -143,11 +144,11 @@ class BooleanPrimitiveResultMapper : CommandResultMapper<Boolean> {
 class DoubleWrapperArgumentMapper : CommandArgumentMapper<java.lang.Double> {
     override fun accepts(): Class<java.lang.Double> = java.lang.Double::class.java
 
-    override fun map(context: CommandContext, token: String): java.lang.Double? {
+    override fun map(context: CommandContext, token: String): Mono<java.lang.Double> {
         try {
-            return java.lang.Double.parseDouble(token) as java.lang.Double
+            return Mono.just(java.lang.Double.parseDouble(token) as java.lang.Double)
         } catch (e: Throwable) {
-            throw ArgumentMappingException()
+            return Mono.error(ArgumentMappingException())
         }
     }
 }
@@ -164,11 +165,11 @@ class DoubleWrapperResultMapper : CommandResultMapper<java.lang.Double> {
 class DoublePrimitiveArgumentMapper : CommandArgumentMapper<Double> {
     override fun accepts(): Class<Double> = java.lang.Double.TYPE
 
-    override fun map(context: CommandContext, token: String): Double? {
+    override fun map(context: CommandContext, token: String): Mono<Double> {
         try {
-            return java.lang.Double.parseDouble(token)
+            return Mono.just(java.lang.Double.parseDouble(token))
         } catch (e: Throwable) {
-            throw ArgumentMappingException()
+            return Mono.error(ArgumentMappingException())
         }
     }
 }
@@ -195,7 +196,7 @@ private fun userMention2Id(context: CommandContext, token: String): Snowflake? {
     }
 }
 
-private fun username2Id(context: CommandContext, token: String): Snowflake? {
+private fun username2Id(context: CommandContext, token: String): Mono<Snowflake> {
     // FIXME: Right now it only retrieves users by name if discrim is provided and the user is in the current server
     if (token.contains("#")) {
         val potentialDiscrim = token.split("#")[-1]
@@ -209,40 +210,31 @@ private fun username2Id(context: CommandContext, token: String): Snowflake? {
                             .filter { it.username == token || (it.nickname.isPresent && it.nickname.get() == token) }
                             .next()
                             .map { it.id }
-                            .blockOptional()
-                            .orElse(null)
                 }
             } catch (e: Throwable) {}
         }
     } else {
         try {
-            return Snowflake.of(token)
+            return Mono.just(Snowflake.of(token))
         } catch (e: Throwable) {}
     }
-    return null
+    return Mono.empty()
 }
 
-// Discord specific TODO: Make non-blocking
+// Discord specific
 @WireService(CommandArgumentMapper::class)
 class UserArgumentMapper : CommandArgumentMapper<User> {
     override fun accepts(): Class<User> = User::class.java
 
-    override fun map(context: CommandContext, token: String): User? {
-        try {
-            val id = (if (containsMention(token)) userMention2Id(context, token) else username2Id(context, token))
-                    ?: throw ArgumentMappingException()
-
+    override fun map(context: CommandContext, token: String): Mono<User> {
+        return (if (containsMention(token)) Mono.justOrEmpty(userMention2Id(context, token)) else username2Id(context, token)).flatMap { id ->
             if (id == context.author.id) {
-                return context.author
+                return@flatMap Mono.just(context.author)
             } else if (id == context.harmony.self.id) {
-                return context.harmony.self
+                return@flatMap Mono.just(context.harmony.self)
             } else {
-                return context.client.getUserById(id).block()
+                return@flatMap context.client.getUserById(id)
             }
-        } catch (ae: ArgumentMappingException) {
-            throw ae
-        } catch (e: Throwable) {
-            throw ArgumentMappingException()
         }
     }
 }
@@ -259,23 +251,16 @@ class UserResultMapper : CommandResultMapper<User> {
 class MemberArgumentMapper : CommandArgumentMapper<Member> {
     override fun accepts(): Class<Member> = Member::class.java
 
-    override fun map(context: CommandContext, token: String): Member? {
-        try {
-            if (context.server == null)
-                throw ArgumentMappingException()
+    override fun map(context: CommandContext, token: String): Mono<Member> {
+        if (context.server == null)
+            return Mono.error(ArgumentMappingException())
 
-            val id = (if (containsMention(token)) userMention2Id(context, token) else username2Id(context, token))
-                    ?: throw ArgumentMappingException()
-
+        return (if (containsMention(token)) Mono.justOrEmpty(userMention2Id(context, token)) else username2Id(context, token)).flatMap { id ->
             if (id == context.author.id) {
-                return context.message.authorAsMember.block()
+                return@flatMap context.message.authorAsMember
             } else {
-                return context.server.getMemberById(id).block()
+                return@flatMap context.server.getMemberById(id)
             }
-        } catch (ae: ArgumentMappingException) {
-            throw ae
-        } catch (e: Throwable) {
-            throw ArgumentMappingException()
         }
     }
 }
@@ -292,32 +277,25 @@ class MemberResultMapper : CommandResultMapper<Member> {
 class RoleArgumentMapper : CommandArgumentMapper<Role> {
     override fun accepts(): Class<Role> = Role::class.java
 
-    override fun map(context: CommandContext, token: String): Role? {
-        try {
-            if (context.server == null)
-                throw ArgumentMappingException()
+    override fun map(context: CommandContext, token: String): Mono<Role> {
+        if (context.server == null)
+            return Mono.error(ArgumentMappingException())
 
-            var role: Role?
-
-            if (containsMention(token) && token.startsWith("<@&")) {
-                val id = Snowflake.of(token.removePrefix("<@&")
-                        .removeSuffix(">"))
-                role = context.server.getRoleById(id).block()
-            } else {
-                try {
-                    val id = Snowflake.of(token)
-                    role = context.server.getRoleById(id).block()
-                } catch (e: Throwable) {
-                    role = context.server.roles.filter { it.name == token }.blockFirst()
-                }
-            }
-
-            return (role ?: throw ArgumentMappingException())
-        } catch (ae: ArgumentMappingException) {
-            throw ae
-        } catch (e: Throwable) {
-            throw ArgumentMappingException()
-        }
+        return Mono.just(token)
+                .flatMap {  token ->
+                    if (containsMention(token) && token.startsWith("<@&"))  {
+                        val id = Snowflake.of(token.removePrefix("<@&")
+                                .removeSuffix(">"))
+                        return@flatMap context.server.getRoleById(id)
+                    } else {
+                        try {
+                            val id = Snowflake.of(token)
+                            return@flatMap context.server.getRoleById(id).switchIfEmpty(context.server.roles.filter { it.name == token }.next())
+                        } catch (e: Throwable) {
+                            return@flatMap context.server.roles.filter { it.name == token }.next()
+                        }
+                    }
+                }.onErrorMap { ArgumentMappingException() }
     }
 }
 
@@ -329,30 +307,108 @@ class RoleResultMapper : CommandResultMapper<Role> {
             = event.message.channel.flatMap { it.createMessage(obj.mention) }
 }
 
+abstract class AbstractChannelArgumentMapper<T: Channel> : CommandArgumentMapper<T> {
+
+    abstract override fun accepts(): Class<T>
+
+    override fun map(context: CommandContext, token: String): Mono<T> {
+        if (context.server == null)
+            return Mono.error(ArgumentMappingException())
+
+        return Mono.just(token)
+                .flatMap {  token ->
+                    if (token.startsWith("<#") && token.endsWith(">"))  {
+                        val id = Snowflake.of(token.removePrefix("<#")
+                                .removeSuffix(">"))
+                        return@flatMap context.server.getChannelById(id).cast(accepts()).switchIfEmpty(context.client.getChannelById(id).cast(accepts()))
+                    } else {
+                        try {
+                            val id = Snowflake.of(token)
+                            return@flatMap context.server.getChannelById(id).cast(accepts()).switchIfEmpty(context.client.getChannelById(id).cast(accepts()))
+                                    .switchIfEmpty(context.server.channels.filter { it.name == token }.next().cast(accepts()))
+                        } catch (e: Throwable) {
+                            return@flatMap context.server.channels.filter { it.name == token }.next().cast(accepts())
+                        }
+                    }
+                }.onErrorMap { ArgumentMappingException() }
+    }
+}
+
+abstract class AbstractChannelResultMapper<T: Channel> : CommandResultMapper<T> {
+
+    abstract override fun accepts(): Class<T>
+
+    override fun map(harmony: Harmony, event: MessageCreateEvent, obj: T): Mono<*>?
+            = event.message.channel.flatMap { it.createMessage(obj.mention) }
+}
+
+@WireService(CommandArgumentMapper::class)
+class ChannelArgumentMapper : AbstractChannelArgumentMapper<Channel>() {
+    override fun accepts(): Class<Channel> = Channel::class.java
+}
+
+@WireService(CommandResultMapper::class)
+class ChannelResultMapper : AbstractChannelArgumentMapper<Channel>() {
+    override fun accepts(): Class<Channel> = Channel::class.java
+}
+
+@WireService(CommandArgumentMapper::class)
+class GuildChannelArgumentMapper : AbstractChannelArgumentMapper<GuildChannel>() {
+    override fun accepts(): Class<GuildChannel> = GuildChannel::class.java
+}
+
+@WireService(CommandResultMapper::class)
+class GuildChannelResultMapper : AbstractChannelArgumentMapper<GuildChannel>() {
+    override fun accepts(): Class<GuildChannel> = GuildChannel::class.java
+}
+
+@WireService(CommandArgumentMapper::class)
+class GuildMessageChannelArgumentMapper : AbstractChannelArgumentMapper<GuildMessageChannel>() {
+    override fun accepts(): Class<GuildMessageChannel> = GuildMessageChannel::class.java
+}
+
+@WireService(CommandResultMapper::class)
+class GuildMessageChannelResultMapper : AbstractChannelArgumentMapper<GuildMessageChannel>() {
+    override fun accepts(): Class<GuildMessageChannel> = GuildMessageChannel::class.java
+}
+
+@WireService(CommandArgumentMapper::class)
+class MessageChannelArgumentMapper : AbstractChannelArgumentMapper<MessageChannel>() {
+    override fun accepts(): Class<MessageChannel> = MessageChannel::class.java
+}
+
+@WireService(CommandResultMapper::class)
+class MessageChannelResultMapper : AbstractChannelArgumentMapper<MessageChannel>() {
+    override fun accepts(): Class<MessageChannel> = MessageChannel::class.java
+}
+
+@WireService(CommandArgumentMapper::class)
+class TextChannelArgumentMapper : AbstractChannelArgumentMapper<TextChannel>() {
+    override fun accepts(): Class<TextChannel> = TextChannel::class.java
+}
+
+@WireService(CommandResultMapper::class)
+class TextChannelResultMapper : AbstractChannelArgumentMapper<TextChannel>() {
+    override fun accepts(): Class<TextChannel> = TextChannel::class.java
+}
+
 @WireService(CommandArgumentMapper::class)
 class ServerArgumentMapper : CommandArgumentMapper<Guild> {
     override fun accepts(): Class<Guild> = Guild::class.java
 
-    override fun map(context: CommandContext, token: String): Guild? {
-        try {
-            if (context.server == null)
-                throw ArgumentMappingException()
+    override fun map(context: CommandContext, token: String): Mono<Guild> {
+        if (context.server == null)
+            return Mono.error(ArgumentMappingException())
 
-            var server: Guild?
-
-            try {
-                val id = Snowflake.of(token)
-                server = context.client.getGuildById(id).block()
-            } catch (e: Throwable) {
-                server = context.client.guilds.filter { it.name == token }.blockFirst()
-            }
-
-            return (server ?: throw ArgumentMappingException())
-        } catch (ae: ArgumentMappingException) {
-            throw ae
-        } catch (e: Throwable) {
-            throw ArgumentMappingException()
-        }
+        return Mono.just(token)
+                .flatMap {  token ->
+                    try {
+                        val id = Snowflake.of(token)
+                        return@flatMap context.client.getGuildById(id).switchIfEmpty(context.client.guilds.filter { it.name == token }.next())
+                    } catch (e: Throwable) {
+                        return@flatMap context.client.guilds.filter { it.name == token }.next()
+                    }
+                }.onErrorMap { ArgumentMappingException() }
     }
 }
 

@@ -3,6 +3,7 @@ package harmony.util
 import discord4j.core.event.domain.message.MessageCreateEvent
 import harmony.Harmony
 import harmony.command.interfaces.ArgumentMappingException
+import reactor.core.publisher.Mono
 import java.util.*
 
 /**
@@ -18,8 +19,7 @@ interface InvokeHandle {
      * @param tokens The parsed tokens.
      * @return The optional return value.
      *
-     * @throws ArgumentMappingException If the handle cannot map tokens to arguments correctly.
+     * @throws ArgumentMappingException If the handle cannot map tokens to arguments correctly. (Within the mono)
      */
-    @Throws(ArgumentMappingException::class)
-    fun tryInvoke(harmony: Harmony, event: MessageCreateEvent, tokens: Deque<String>): Any?
+    fun tryInvoke(harmony: Harmony, event: MessageCreateEvent, tokens: Deque<String>): Mono<Any>
 }
