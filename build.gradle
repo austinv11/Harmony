@@ -20,8 +20,12 @@ ext {
 group grp
 version ver
 
+sourceCompatibility = '12'
+targetCompatibility = '12'
+
 repositories {
     jcenter()
+//    maven { url "https://jitpack.io" }
 }
 
 dependencies {
@@ -44,10 +48,10 @@ dependencies {
 //}
 
 compileKotlin {
-    kotlinOptions.jvmTarget = "13"
+    kotlinOptions.jvmTarget = "12"
 }
 compileTestKotlin {
-    kotlinOptions.jvmTarget = "13"
+    kotlinOptions.jvmTarget = "12"
 }
 
 java {
