@@ -22,7 +22,6 @@ import harmony.Harmony
 data class CommandContext(
         val harmony: Harmony,
         val server: Guild?,
-        val channel: MessageChannel,
         val message: Message,
         val content: String = message.content,
         val author: User = message.author.get(),
@@ -30,13 +29,13 @@ data class CommandContext(
 ) {
     companion object {
 
-        // TODO: Should this be reactive?
         @JvmStatic
         fun fromMessageCreateEvent(harmony: Harmony, event: MessageCreateEvent) = CommandContext(
                 harmony,
                 event.guild.blockOptional().orElse(null),
-                event.message.channel.block()!!,
                 event.message
         )
     }
+
+    val channel: MessageChannel by lazy { message.channel.block()!! }  // In most cases this wont make a REST request
 }
