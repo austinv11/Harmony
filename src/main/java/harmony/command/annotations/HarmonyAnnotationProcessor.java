@@ -91,11 +91,17 @@ public class HarmonyAnnotationProcessor extends AbstractProcessor {
 
             CodeBlock.Builder impl = CodeBlock.builder();
 
-            String callPrefix = hasArgs && !(hasContext && method.getParameters().size() == 1) ?
-                    "return mappedArgsMono.flatMap((mappedArgs) -> {" : "return {";
+            boolean needsArgMapping = hasArgs && !(hasContext && method.getParameters().size() == 1);
+            String callPrefix =  needsArgMapping ?
+                    "return mappedArgsMono.flatMap((mappedArgs) -> {" : "{";
             callPrefix += hasReturn ? "return $T.justOrEmpty(" : "return $T.fromRunnable(() -> {";
             callPrefix += isStatic ? "" : "cmdInstance.";
-            String callSuffix = hasReturn ? "}))" : "}}))";
+
+            String callSuffix;
+            if (needsArgMapping)
+                callSuffix = hasReturn ? "})" : "}}))";
+            else
+                callSuffix = hasReturn ? ")}" : "})})";
 
             if (!hasArgs) {
                 impl.addStatement(callPrefix + "$L()" + callSuffix, Mono.class, method.getSimpleName().toString());
