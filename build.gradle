@@ -14,7 +14,7 @@ repositories {
 
 ext {
     grp = 'com.austinv11.harmony'
-    ver = '1.0.8'
+    ver = '1.0.9'
 }
 
 group grp
@@ -29,6 +29,8 @@ repositories {
 }
 
 dependencies {
+//    implementation "com.github.austinv11:Harmony:ab0d6b46"
+
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8"
     api "com.discord4j:discord4j-core:3.1.0.M2"
     implementation 'info.debatty:java-string-similarity:2.0.0'
