@@ -101,10 +101,10 @@ public class HarmonyAnnotationProcessor extends AbstractProcessor {
             if (needsArgMapping)
                 callSuffix = hasReturn ? "})" : "}}))";
             else
-                callSuffix = hasReturn ? ");}" : "})}";
+                callSuffix = hasReturn ? ");}" : "});}";
 
             if (!hasArgs) {
-                impl.add(callPrefix + "$L()" + callSuffix, Mono.class, method.getSimpleName().toString());
+                impl.add(callPrefix + "$L();" + callSuffix, Mono.class, method.getSimpleName().toString());
             } else {
                 impl.addStatement("$T context = $T.fromMessageCreateEvent(harmony, event)",
                         CommandContext.class, CommandContext.class);
