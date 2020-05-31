@@ -2,6 +2,7 @@ package harmony.command
 
 import discord4j.core.`object`.reaction.ReactionEmoji
 import discord4j.core.event.domain.message.MessageCreateEvent
+import discord4j.rest.util.Color
 import discord4j.rest.util.Permission
 import discord4j.rest.util.PermissionSet
 import harmony.Harmony
@@ -13,12 +14,9 @@ import harmony.util.*
 import org.reactivestreams.Publisher
 import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
-import java.awt.Color
 import java.time.Duration
 import java.util.*
 import java.util.concurrent.atomic.AtomicInteger
-import kotlin.math.ceil
-import kotlin.math.roundToInt
 
 /**
  * This represents information regarding a command's argument.

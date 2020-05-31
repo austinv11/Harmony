@@ -25,14 +25,15 @@ targetCompatibility = '12'
 
 repositories {
     jcenter()
-//    maven { url "https://jitpack.io" }
+    maven {
+        url "https://jitpack.io"
+    }
 }
 
 dependencies {
-//    implementation "com.github.austinv11:Harmony:ab0d6b46"
-
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8"
-    api "com.discord4j:discord4j-core:3.1.0.M2"
+//    api "com.discord4j:discord4j-core:3.1.0.M2"
+    api "com.discord4j.Discord4J:discord4j-core:2c5ab65"
     implementation 'info.debatty:java-string-similarity:2.0.0'
     implementation 'com.squareup:javapoet:1.12.1'
 

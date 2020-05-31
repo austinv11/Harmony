@@ -1,6 +1,6 @@
 package harmony.command.interfaces;
 
-import discord4j.rest.util.Snowflake;
+import discord4j.common.util.Snowflake;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Optional;
