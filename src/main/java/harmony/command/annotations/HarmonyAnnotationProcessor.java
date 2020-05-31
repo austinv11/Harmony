@@ -101,7 +101,7 @@ public class HarmonyAnnotationProcessor extends AbstractProcessor {
             if (needsArgMapping)
                 callSuffix = hasReturn ? "})" : "}}))";
             else
-                callSuffix = hasReturn ? ");}" : "});}";
+                callSuffix = hasReturn ? ");}" : ";});}";
 
             if (!hasArgs) {
                 impl.add(callPrefix + "$L()" + callSuffix, Mono.class, method.getSimpleName().toString());
@@ -110,7 +110,7 @@ public class HarmonyAnnotationProcessor extends AbstractProcessor {
                         CommandContext.class, CommandContext.class);
 
                 if (hasContext && method.getParameters().size() == 1) { // only arg is context
-                    impl.add(callPrefix + "$L(context);" + callSuffix, Mono.class, method.getSimpleName().toString());
+                    impl.add(callPrefix + "$L(context)" + callSuffix, Mono.class, method.getSimpleName().toString());
                 } else {
                     impl.addStatement("$T<$T> mappedArgsMono = tokenHandler.map(context, tokens)", Mono.class, List.class);
                     StringJoiner paramCalls = new StringJoiner(",");
