@@ -5,8 +5,6 @@ import discord4j.core.event.domain.message.MessageCreateEvent;
 import harmony.Harmony;
 import harmony.command.CommandContext;
 import harmony.command.CommandTokenizer;
-import harmony.command.interfaces.ArgumentMappingException;
-import harmony.command.interfaces.CommandErrorSignal;
 import harmony.command.util.CommandLambdaFunction;
 import harmony.command.util.CommandWrapper;
 import harmony.command.util.ProcessorUtils;
@@ -47,7 +45,7 @@ public class HarmonyAnnotationProcessor extends AbstractProcessor {
     private Elements elementUtils;
     private Filer filer;
     private Messager messager;
-    private Set<String> commandNames = Collections.synchronizedSet(new HashSet<>());
+    private Set<String> commandNames = new HashSet<>();
 
     public HarmonyAnnotationProcessor() {} // Required
 
@@ -137,6 +135,7 @@ public class HarmonyAnnotationProcessor extends AbstractProcessor {
             TypeSpec type = TypeSpec.classBuilder(typeName + "$CommandWrapper$" + i)
                     .addModifiers(Modifier.PUBLIC)
                     .addSuperinterface(CommandLambdaFunction.class)
+                    .addOriginatingElement(element)
                     .addMethod(callMethod)
                     .addField(FieldSpec.builder(TypeName.get(element.asType()), "cmdInstance", Modifier.FINAL).build())
                     .addMethod(MethodSpec
@@ -162,6 +161,7 @@ public class HarmonyAnnotationProcessor extends AbstractProcessor {
         TypeSpec wrapper = TypeSpec.classBuilder(typeName + "$CommandWrapper")
                 .addModifiers(Modifier.PUBLIC)
                 .addSuperinterface(CommandWrapper.class)
+                .addOriginatingElement(element)
                 .addField(FieldSpec.builder(TypeName.get(CommandLambdaFunction[].class),
                         "funcs", Modifier.FINAL).build())
                 .addMethod(MethodSpec
@@ -181,7 +181,7 @@ public class HarmonyAnnotationProcessor extends AbstractProcessor {
     }
 
     @Override
-    public boolean process(Set<? extends TypeElement> annotations, RoundEnvironment roundEnv) {
+    public synchronized boolean process(Set<? extends TypeElement> annotations, RoundEnvironment roundEnv) {
         if (roundEnv.errorRaised())
             return false;
 
@@ -234,7 +234,8 @@ public class HarmonyAnnotationProcessor extends AbstractProcessor {
         }
 
         try {
-            FileObject fo = filer.createResource(StandardLocation.CLASS_OUTPUT, "", location);
+            FileObject fo = filer.createResource(StandardLocation.CLASS_OUTPUT, "", location,
+                    commandNames.stream().map(elementUtils::getTypeElement).toArray(Element[]::new));
             try (Writer w = fo.openWriter()) {
                 for (String name : commandNames) {
                     messager.printMessage(Diagnostic.Kind.NOTE, "Setting up " + name + " for use as a command handler!\n");
