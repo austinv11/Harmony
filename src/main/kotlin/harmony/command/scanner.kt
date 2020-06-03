@@ -1,5 +1,6 @@
 package harmony.command
 
+import discord4j.common.util.Snowflake
 import discord4j.core.event.domain.message.MessageCreateEvent
 import discord4j.rest.util.PermissionSet
 import harmony.Harmony
@@ -112,6 +113,11 @@ class AnnotationProcessorScanner : CommandScanner {
         val description: String? = if (clazz.isAnnotationPresent(Help::class.java)) clazz.getAnnotation(Help::class.java).value else null
         val requiresPermissions = if (clazz.isAnnotationPresent(RequiresPermissions::class.java)) PermissionSet.of(*clazz.getAnnotation(RequiresPermissions::class.java).value) else null
 
+        val servers: Array<Snowflake>? = if (clazz.isAnnotationPresent(ServerSpecific::class.java))
+            clazz.getAnnotation(ServerSpecific::class.java).value.map { Snowflake.of(it) }.toTypedArray()
+        else
+            null
+
         val responderMethods = instance::class.java.methods
                 .filter { it.isAnnotationPresent(Responder::class.java) }
 
@@ -158,14 +164,15 @@ class AnnotationProcessorScanner : CommandScanner {
                 }
 
         return InvocableCommand(
-            name,
-            aliases,
-            description,
-            requiresPermissions,
-            clazz.isAnnotationPresent(BotOwnerOnly::class.java),
-            channelType,
-            variantInfo,
-            responderTree
+                name,
+                aliases,
+                description,
+                requiresPermissions,
+                clazz.isAnnotationPresent(BotOwnerOnly::class.java),
+                channelType,
+                servers,
+                variantInfo,
+                responderTree
         )
     }
 }

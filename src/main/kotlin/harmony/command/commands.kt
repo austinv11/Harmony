@@ -1,5 +1,6 @@
 package harmony.command
 
+import discord4j.common.util.Snowflake
 import discord4j.core.`object`.reaction.ReactionEmoji
 import discord4j.core.event.domain.message.MessageCreateEvent
 import discord4j.rest.util.Color
@@ -52,6 +53,7 @@ data class CommandVariantInfo(
  * @param requiresPermissions The permissions required of the user requesting the command if any.
  * @param botOwnerOnly Whether the command is only available to the bot owner.
  * @param channelType The types of channels this command can be invoked in.
+ * @param servers The servers that this command can be used in.
  * @param commandVariants Information for the handlers available for the command.
  * @param responders A tree representing mappings from arguments -> handler implementation.
  */
@@ -62,6 +64,7 @@ data class InvocableCommand(
         val requiresPermissions: PermissionSet?,
         val botOwnerOnly: Boolean,
         val channelType: ChannelType,
+        val servers: Array<Snowflake>?,
         val commandVariants: Array<CommandVariantInfo>,
         val responders: Tree
 ) {
@@ -158,6 +161,11 @@ class CommandBuilder(val name: String) {
      * The types of channels this command can be used in.
      */
     var channelType: ChannelType = ChannelType.ALL
+
+    /**
+     * The servers this command can be used in.
+     */
+    var servers: Array<Snowflake>? = null
 
     private val responders = mutableListOf<CommandResponderBuilder>()
 
@@ -293,9 +301,11 @@ class CommandBuilder(val name: String) {
             }
         }
 
-        return InvocableCommand(name, aliases, description, requiresPermissions, botOwnerOnly, channelType, responders.map {
-            CommandVariantInfo(it.description, it.args.map { arg -> CommandArgumentInfo(arg.name, arg.description, arg.type) }.toTypedArray())
-        }.toTypedArray(), responderTree)
+        return InvocableCommand(name, aliases, description, requiresPermissions, botOwnerOnly, channelType, servers,
+                responders.map {
+                    CommandVariantInfo(it.description,
+                            it.args.map { arg -> CommandArgumentInfo(arg.name, arg.description, arg.type) }.toTypedArray())
+                }.toTypedArray(), responderTree)
     }
 }
 
@@ -378,7 +388,8 @@ internal fun helpBuilder(commandHandler: CommandHandler): InvocableCommand = bui
         handle {
             val context = this.context
             val commands = commandHandler.commands.filter {
-                !it.value.botOwnerOnly || context.author.id == context.harmony.owner.id
+                (!it.value.botOwnerOnly || context.author.id == context.harmony.owner.id)
+                        && (it.value.servers == null || (context.server != null && context.server.id in it.value.servers!!))
             }.map { it.key }.sorted()
             val pages: List<List<EmbedField>> = commands
                 .map { EmbedField("**$it**", commandHandler.commands[it]!!.description?.take(1024) ?: "", true) }
