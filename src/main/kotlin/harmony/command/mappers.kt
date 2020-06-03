@@ -223,6 +223,23 @@ private fun username2Id(context: CommandContext, token: String): Mono<Snowflake>
 
 // Discord specific
 @WireService(CommandArgumentMapper::class)
+class SnowflakeArgumentMapper : CommandArgumentMapper<Snowflake> {
+    override fun accepts(): Class<Snowflake> = Snowflake::class.java
+
+    override fun map(context: CommandContext, token: String): Mono<Snowflake> {
+        return Mono.fromSupplier { Snowflake.of(token) }
+    }
+}
+
+@WireService(CommandResultMapper::class)
+class SnowflakeResultMapper : CommandResultMapper<Snowflake> {
+    override fun accepts(): Class<Snowflake> = Snowflake::class.java
+
+    override fun map(harmony: Harmony, event: MessageCreateEvent, obj: Snowflake): Mono<*>?
+            = event.message.channel.flatMap { it.createMessage(obj.asString()) }
+}
+
+@WireService(CommandArgumentMapper::class)
 class UserArgumentMapper : CommandArgumentMapper<User> {
     override fun accepts(): Class<User> = User::class.java
 
@@ -233,7 +250,7 @@ class UserArgumentMapper : CommandArgumentMapper<User> {
             } else if (id == context.harmony.self.id) {
                 return@flatMap Mono.just(context.harmony.self)
             } else {
-                return@flatMap context.client.getUserById(id)
+                return@flatMap context.client.getUserById(id!!)
             }
         }
     }
